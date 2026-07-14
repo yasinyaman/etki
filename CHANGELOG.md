@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.1.0a1] - 2026-07-14
+
+First public release.
+
 ### Changed (2026-07-14)
 
 - **Rebrand: Kapsam → Etki** — package `etki/`, env prefix `ETKI_*`, data dir

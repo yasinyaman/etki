@@ -19,7 +19,8 @@ and which contract clause does it touch?** It fuses three sources no other tool 
 3. **Historical effort** — real time logged on similar past requests, used by analogy.
 
 Every decision carries an **auditable evidence chain** that can be reconstructed for a
-contractual dispute. **Copilot, not autopilot:** the system recommends, the PMO decides.
+contractual dispute. Built for analysts, developers and PMO alike. **Copilot, not
+autopilot:** the system recommends, a human makes the final call.
 
 ## Where to go
 
@@ -28,7 +29,7 @@ contractual dispute. **Copilot, not autopilot:** the system recommends, the PMO 
 - **[Concepts](concepts.md)** — the load-bearing design decisions: evidence chain,
   two-evidence rule, first-class EXCLUDED scope, effort ranges.
 - **[Decision memory](memory.md)** — the git-versionable decision wiki (a pure DB
-  projection), precedents from PMO overrides, disputed clauses, and graph retrieval.
+  projection), precedents from human overrides, disputed clauses, and graph retrieval.
 - **[MCP](MCP.md)** — ask Claude *"is this in scope?"* and get the real Etki answer.
 - **[Writing an adapter](writing-an-adapter.md)** — connect your tracker, repo host or
   document source without touching core code.

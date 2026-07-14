@@ -8,7 +8,7 @@
 
 > ⚠️ **Alpha.** APIs, schema and screens may change. Not for production; intended for pilot/evaluation.
 
-Etki is a **PMO / analyst decision-support** application that answers a single question for every incoming client request:
+Etki is a **decision-support application for software teams** — analysts, developers and the PMO alike — that answers a single question for every incoming client request:
 **Is this in-scope, out-of-scope, or a Change Request (CR); what is the effort; which code and which contract clause does it touch?**
 
 Its defensible value is producing a **live, evidence-backed recommendation** from the **fusion of three sources** — it doesn't leave the analyst alone, and it strengthens your hand with evidence in client negotiations:
@@ -17,7 +17,7 @@ Its defensible value is producing a **live, evidence-backed recommendation** fro
 2. **Code knowledge graph** — modules, dependencies, complexity, churn — for impact analysis and effort.
 3. **Historical effort** — real time logged on similar past requests, used by analogy.
 
-Every decision carries an **auditable evidence chain** (clauses checked, best match, impacted modules, reasoning, confidence, model/version and index-freshness stamp) — it can be reconstructed for a contractual dispute. **Copilot, not autopilot:** the system *recommends*, the **PMO decides**.
+Every decision carries an **auditable evidence chain** (clauses checked, best match, impacted modules, reasoning, confidence, model/version and index-freshness stamp) — it can be reconstructed for a contractual dispute. **Copilot, not autopilot:** the system *recommends*, a **human makes the final call**.
 
 ## Try it in 5 minutes — no API key
 
@@ -38,13 +38,13 @@ Every answer shows its full evidence chain: the contract clauses checked, the be
 
 - **Triage** — enter a request → in-scope / out-of-scope / CR / gray-area / maintenance decision + an **effort range** (single-point estimates forbidden) + risk + impacted-module cards.
 - **Automatic pre-analysis** — after triage, a developer-oriented technical pre-analysis is generated automatically (LLM if available, otherwise deterministically from the evidence chain) and saved to the case; it can be edited and enriched via chat.
-- **Approval & living baseline** — the PMO approves / rejects / converts to CR; an approved CR bumps the baseline version by +1. A **baseline timeline** shows which CR added which clause, when; the history screen filters by decision type, and approved cases live there as **analyses**.
+- **Approval & living baseline** — the reviewer approves / rejects / converts to CR; an approved CR bumps the baseline version by +1. A **baseline timeline** shows which CR added which clause, when; the history screen filters by decision type, and approved cases live there as **analyses**.
 - **Ask (Sor)** — a single-input question box over the project's knowledge graph: an instant **deterministic answer** (scope clauses, modules, dependencies — source-labeled) and, if an LLM is configured, an AI answer **grounded in that deterministic result**. Every question and answer is appended to the project's process log.
 - **Flow map (Sankey)** — **Request → Requirement (scope clause) → Code module** interaction; interactive, with node detail. Each triage also has its own flow graph.
 - **Explorable index** — a per-clause detail screen (rulings, memory and pool status per scope item), a per-module code-graph table (repo-scoped), a dependency card with version-compare / OSV lookup, and an index-run history with freshness badges.
 - **Document management** — upload Word/Excel/PDF/CSV (→ text + scope clauses), preview documents inline; attach code repos (git URL / local) and work-item trackers (Jira/GitLab/Redmine/Azure DevOps/Linear/GLPI/file).
 - **Reports** — KPI/scorecard on the project summary (over-reliance rate, agreement, effort pool with per-item consumption breakdown, precedent & disputed-clause counters); every KPI tile links to the list that answers "which ones?", and a client-ready `.docx` report per case.
-- **Decision memory ("decision memory as code")** — every triage decision is auto-projected to a per-project, git-versionable **markdown wiki** (`decisions/`, entity backlinks, generated index). PMO overrides are promoted to **precedents**, conflicting rulings on the same clause surface in a **disputed** page, and a `GraphQueryPort` retrieves over scope clauses + code modules + past work items (top-k / graph expand / guarded NL query). The wiki is always a **projection of the database** — regenerable with one command, never a second source of truth.
+- **Decision memory ("decision memory as code")** — every triage decision is auto-projected to a per-project, git-versionable **markdown wiki** (`decisions/`, entity backlinks, generated index). Human overrides are promoted to **precedents**, conflicting rulings on the same clause surface in a **disputed** page, and a `GraphQueryPort` retrieves over scope clauses + code modules + past work items (top-k / graph expand / guarded NL query). The wiki is always a **projection of the database** — regenerable with one command, never a second source of truth.
 - **Multilingual UI (TR/EN/DE)** — switch language from the top-right; menus/labels and LLM output follow the chosen language.
 - **Per-project LLM profile** — assign each project an **output language** (any language) + a selectable **domain/skill profile** (`config/domains/*.md`: integration, enterprise, e-commerce, healthcare…) or free-text instructions; LLM prompts are enriched per project. An optional **pivot translation** (translate input → working language → reason → translate back) can be enabled per project.
 - **Settings screen (pmo)** — the global LLM provider (off / Anthropic / OpenAI-compatible) is configured **from the UI** with a one-click connection test, and **users are managed from the UI** too: create/delete, roles, per-user project grants, password reset.
@@ -68,7 +68,7 @@ Software-engineering-intelligence platforms measure *delivery*; estimation plugi
 | Code knowledge graph for impact analysis | ✅ Joern CPG / Python AST | partial (repo metrics) | ❌ |
 | Per-decision evidence chain (clauses, match score, modules, model + index stamp) | ✅ reconstructable for disputes | ❌ | ❌ |
 | Estimates | ranges only (three-point/PERT) | n/a | typically single points |
-| Human-in-the-loop | built in — the PMO decides, overrides are tracked | n/a | n/a |
+| Human-in-the-loop | built in — a human decides, overrides are tracked | n/a | n/a |
 | Deployment | self-hosted, air-gapped capable | SaaS | marketplace app |
 | License | Apache-2.0 | commercial | commercial |
 
@@ -99,11 +99,11 @@ negative findings live in
 ```bash
 uv sync --dev                                   # venv + dependencies (editable install)
 cp .env.example .env                            # fill in settings (LLM optional)
-uv run python -m etki.persistence create-user   # first PMO user (or ETKI_ADMIN_*)
+uv run python -m etki.persistence create-user   # first admin user (or ETKI_ADMIN_*)
 uv run uvicorn etki.api.app:app --reload   # http://localhost:8000  (API docs: /docs)
 ```
 
-Only the *first* PMO user needs the CLI/env bootstrap — after logging in, manage users
+Only the *first* admin user needs the CLI/env bootstrap — after logging in, manage users
 (roles, project grants, password resets) from **Settings → Users** in the UI.
 
 The LLM is **optional** — with no API key the system runs deterministically/heuristically.

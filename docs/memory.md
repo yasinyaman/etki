@@ -1,7 +1,7 @@
 # Decision memory (wiki & graph query)
 
 Etki keeps a long-form, file-based **decision memory** next to the database:
-every triage decision becomes a readable markdown page, PMO corrections become
+every triage decision becomes a readable markdown page, human corrections become
 precedents, and a retrieval port serves that knowledge back to tools and future
 phases. The design goal is *"decision memory as code"* — the memory is plain
 markdown you can grep, diff and version.
@@ -32,7 +32,7 @@ python -m etki.wiki show DEC-20260709-req-demo-1a2b3c4d --project demo
 ├── decisions/
 │   └── DEC-{yyyymmdd}-{slug}.md   # one case = one file (frontmatter + evidence)
 ├── precedents/
-│   └── PRE-{slug}.md              # cases where the PMO overrode the system
+│   └── PRE-{slug}.md              # cases where the reviewer overrode the system
 └── entities/
     ├── contracts/{id}.md          # backlinks: which decisions cited this contract
     └── modules/{id}.md            # backlinks: which decisions touched this module
@@ -41,7 +41,7 @@ python -m etki.wiki show DEC-20260709-req-demo-1a2b3c4d --project demo
 Decision files carry YAML frontmatter (case id, verdicts, confidence, cited
 clause refs, impacted modules, model version, index freshness) and a body
 projected from the **frozen evidence chain** — reasoning, cited clauses in full,
-effort *range*, risk, assumptions, the PMO's decision and the saved
+effort *range*, risk, assumptions, the reviewer's decision and the saved
 pre-analysis. Enable/disable and relocate via `ETKI_WIKI_DIR`
 (default `.etki/wiki-{id}`; empty string turns the wiki off).
 
@@ -50,7 +50,7 @@ pre-analysis. Enable/disable and relocate via `ETKI_WIKI_DIR`
 Human decisions flow back into the memory automatically, on every approval
 action:
 
-- **Override → precedent.** When the PMO's ruling differs from the system's
+- **Override → precedent.** When the reviewer's ruling differs from the system's
   recommendation, the case is promoted to `precedents/PRE-*.md`: what the
   system said, what the human decided, who and when — the boundary-case file
   future triage should consult.
@@ -65,7 +65,7 @@ And the memory is READ back at decision time — closing the loop end to end:
 
 - **Review panel.** The approval screen shows a per-decision "clause memory"
   strip (precedent count, last human correction, a red disputed warning) right
-  where the PMO clicks Approve/CR/Reject.
+  where the approver clicks Approve/CR/Reject.
 - **Engine note (non-signal).** When the cited clause has memory, the triage
   decision carries an informational note in its evidence chain ("clause memory:
   N past PMO corrections — informational, no decision effect"). Structurally it

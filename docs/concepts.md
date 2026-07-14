@@ -16,7 +16,7 @@ Every triage decision is emitted with a full, frozen **evidence chain**:
 - reasoning, confidence, the **model/prompt version** and an **index-freshness stamp**.
 
 The point is auditability: months later, in a contractual dispute, any decision can be
-reconstructed exactly as it was made. PMO actions (approve/reject/convert-to-CR,
+reconstructed exactly as it was made. Reviewer actions (approve/reject/convert-to-CR,
 overrides) append to an immutable audit trail on top.
 
 ## The two-evidence rule
@@ -26,7 +26,7 @@ A confident decision rests on **two independent kinds of evidence**:
 1. **Text similarity** — does the request match a contract clause?
 2. **Code reality** — does the request touch code that is already in scope?
 
-Agreement → high confidence. Conflict or weakness → **gray area → escalate to the PMO**.
+Agreement → high confidence. Conflict or weakness → **gray area → escalate to a human reviewer**.
 The decision-tree order is: maintenance scope → explicit EXCLUDED match → code+text
 match → limit/quota check → effort-pool check → otherwise CR candidate.
 
@@ -62,7 +62,7 @@ single-sourced in the database and survives restarts and re-indexing.
 
 ## Copilot, not autopilot
 
-The system only **recommends**; the PMO decides. When the PMO overrides the system's
+The system only **recommends**; a human makes the final call (the `pmo` role approves). When the reviewer overrides the system's
 recommendation, the override is recorded — both for auditability and as an
 **over-reliance metric** on the KPI dashboard. Pilot mismatches feed a calibration loop
 that *suggests* threshold changes; a human applies them.
@@ -70,7 +70,7 @@ that *suggests* threshold changes; a human applies them.
 ## Decision memory is a projection
 
 Decisions are also written to a per-project **markdown wiki** (searchable long-form
-memory: decision pages, entity backlinks, precedents from PMO overrides, a disputed-
+memory: decision pages, entity backlinks, precedents from human overrides, a disputed-
 clauses page). The load-bearing rule: the wiki is **always a projection of the
 database** — one writer, regenerable bit-identically with `python -m etki.wiki
 rebuild`, never hand-edited, and a wiki failure never breaks triage. Retrieval over

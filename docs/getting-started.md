@@ -26,11 +26,11 @@ Requirements: Python 3.12+ and [uv](https://docs.astral.sh/uv/).
 ```bash
 uv sync --dev                                   # venv + dependencies (editable install)
 cp .env.example .env                            # settings (LLM optional)
-uv run python -m etki.persistence create-user   # first PMO user (or ETKI_ADMIN_*)
+uv run python -m etki.persistence create-user   # first admin user (or ETKI_ADMIN_*)
 uv run uvicorn etki.api.app:app --reload   # http://localhost:8000  (API docs: /docs)
 ```
 
-Only the *first* PMO user needs the CLI/env bootstrap — after that, manage users (roles,
+Only the *first* admin user needs the CLI/env bootstrap — after that, manage users (roles,
 per-user project grants, password resets) from **Settings → Users** in the UI. Roles:
 `pmo` approves and administers, `engineer` runs triage/analysis, `viewer` is read-only.
 
