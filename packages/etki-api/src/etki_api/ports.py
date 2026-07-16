@@ -13,7 +13,14 @@ from typing import Protocol, runtime_checkable
 
 from pydantic import BaseModel
 
-from etki_api.models import CodeModule, DocumentRef, PackageMetadata, WorkItem
+from etki_api.models import (
+    CodeModule,
+    DocumentRef,
+    IntakeBatch,
+    OutboundResponse,
+    PackageMetadata,
+    WorkItem,
+)
 
 
 class Capabilities(BaseModel):
@@ -105,3 +112,31 @@ class RegistryMetadataProvider(Protocol):
     any failure degrades to None."""
 
     async def latest(self, ecosystem: str, name: str) -> PackageMetadata | None: ...
+
+
+@runtime_checkable
+class RequestIntakeProvider(Protocol):
+    """Pulls NEW client requests from the tracker (Jira/GitLab/...). Transport
+    is polling in v1 — ``capabilities().supports_webhooks`` reserves the push
+    upgrade. The ``cursor`` is OPAQUE (see ``IntakeBatch``): the host stores it
+    verbatim and hands it back on the next poll; an exhausted source returns an
+    empty ``items`` list, never an exception."""
+
+    async def fetch_new(self, *, cursor: str | None = None, limit: int = 20) -> IntakeBatch: ...
+
+    def capabilities(self) -> Capabilities: ...
+
+
+@runtime_checkable
+class ResponseChannel(Protocol):
+    """Writes a triage/decision outcome back to the tracker (e.g. a Jira
+    comment) — the FIRST WRITING port (declare ``external_write`` in the
+    plugin's ``SecurityCapabilities``). ``post_response`` RAISES on failure so
+    the vendor error can be recorded; the HOST is the only best-effort layer
+    (it catches, audits ok/error, and never blocks a PMO approval on a failed
+    post). Posting is NOT idempotent — two calls leave two comments; dedup is
+    the host's responsibility."""
+
+    async def post_response(self, response: OutboundResponse) -> None: ...
+
+    def capabilities(self) -> Capabilities: ...

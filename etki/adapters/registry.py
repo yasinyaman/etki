@@ -17,6 +17,7 @@ from etki.adapters.composite_document import CompositeDocumentSourceProvider
 from etki.adapters.confluence_document import ConfluenceDocumentSourceProvider
 from etki.adapters.fakes.code_repo import FakeCodeRepositoryProvider
 from etki.adapters.fakes.document import FakeDocumentSourceProvider
+from etki.adapters.fakes.intake import FakeRequestIntakeProvider, FakeResponseChannel
 from etki.adapters.fakes.work_item import FakeWorkItemProvider
 from etki.adapters.file_work_item import FileWorkItemProvider
 from etki.adapters.filesystem_document import FileSystemDocumentSourceProvider
@@ -40,6 +41,8 @@ from etki.core.ports import (
     CodeRepositoryProvider,
     DocumentSourceProvider,
     LLMClient,
+    RequestIntakeProvider,
+    ResponseChannel,
     WorkItemProvider,
 )
 
@@ -161,6 +164,8 @@ _BUILTIN_ADAPTERS: dict[str, list[str]] = {
     "work_items": ["none", "fake", "file", "jira", "gitlab", "redmine", "azure_devops"],
     "code_repo": ["fake", "ast", "joern", "graphify"],
     "documents": ["fake", "filesystem", "composite", "confluence", "sharepoint"],
+    "request_intake": ["none", "fake"],
+    "response_channel": ["none", "fake"],
 }
 
 
@@ -327,6 +332,32 @@ def build_work_items(cfg: ConnectorConfig) -> WorkItemProvider:
     if provider is not None:
         return provider  # type: ignore[return-value]
     raise _unknown("work_items", cfg.adapter, available_adapters("work_items"))
+
+
+def build_request_intake(cfg: ConnectorConfig) -> RequestIntakeProvider | None:
+    """None when unconfigured — unlike work_items' empty-Fake, "no intake" must
+    skip the project entirely (there is nothing to poll)."""
+    if cfg.adapter in ("", "none", "empty"):
+        return None
+    if cfg.adapter == "fake":
+        return FakeRequestIntakeProvider()
+    provider = _try_plugin("request_intake", cfg)
+    if provider is not None:
+        return provider  # type: ignore[return-value]
+    raise _unknown("request_intake", cfg.adapter, available_adapters("request_intake"))
+
+
+def build_response_channel(cfg: ConnectorConfig) -> ResponseChannel | None:
+    """None when unconfigured — a project with no response channel simply never
+    posts back."""
+    if cfg.adapter in ("", "none", "empty"):
+        return None
+    if cfg.adapter == "fake":
+        return FakeResponseChannel()
+    provider = _try_plugin("response_channel", cfg)
+    if provider is not None:
+        return provider  # type: ignore[return-value]
+    raise _unknown("response_channel", cfg.adapter, available_adapters("response_channel"))
 
 
 def build_providers(config: ConnectorsConfig) -> Providers:

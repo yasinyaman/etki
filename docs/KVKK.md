@@ -24,11 +24,19 @@
 - Kurulu plugin'ler, sürümleri ve durumları `python -m etki.plugin list --json` ile
   makine-okunur alınır — VERBİS/DPIA envanterine bu çıktı eklenmelidir.
 - Her plugin, manifest'inde (`etki-plugin.toml`) **güvenlik yetenek beyanı** taşır:
-  ağ erişimi, dosya-sistemi erişimi ve beyan edilen dış uçlar (endpoints). Bir plugin
-  sözleşme/talep verisine adaptör olarak erişebilir → kuruma alınmadan önce bu beyan
-  incelenmeli, beyan edilen dış uçların veri ikametgâhı kurallarına uygunluğu
-  doğrulanmalıdır. (Beyanın teknik olarak zorlanması — sandbox — plan Faz 6'dadır;
-  bugünkü kontrol kurulum onayı + envanterdir.)
+  ağ erişimi, dosya-sistemi erişimi, **dış-sisteme-yazma** (`external_write`) ve beyan
+  edilen dış uçlar (endpoints). Bir plugin sözleşme/talep verisine adaptör olarak
+  erişebilir → kuruma alınmadan önce bu beyan incelenmeli, beyan edilen dış uçların
+  veri ikametgâhı kurallarına uygunluğu doğrulanmalıdır. (Beyanın teknik olarak
+  zorlanması — sandbox — plan Faz 6'dadır; bugünkü kontrol kurulum onayı + envanterdir.)
+- **Talep alma / geri yazma** (`RequestIntakeProvider` / `ResponseChannel`, etki-api
+  0.1.2): bir intake adaptörü dış tracker'dan **talep metni çeker** (kişisel veri
+  içerebilir — triyaj girdisiyle aynı kurallara tabidir) ve `external_write` beyan eden
+  bir yanıt kanalı, **karar özetini (karar, efor bandı, madde referansları) sınır
+  DIŞINA**, tracker'a yorum olarak gönderir; yorumun görünürlüğü tracker'ın kendi
+  erişim kontrollerine tabidir. Her geri yazma vakanın audit zincirine `RESPONSE_POSTED`
+  (kullanıcı=system, trigger, ok/hata, gönderilen metin) olarak, süreç günlüğüne de
+  `intake` / `intake_response` olayı olarak işlenir.
 - **Tedarik zinciri:** varsayılan politika `verified_only` — yalnızca imzalı
   marketplace index'inden doğrulanan plugin'ler kurulur/yüklenir (uzak index'te
   sigstore imzası zorunlu, artifact SHA-256 kurulumdan ÖNCE doğrulanır; lockfile
@@ -41,10 +49,11 @@
   her kurulum süreç günlüğüne `plugin_install` olayı olarak (kullanıcı + plugin +
   SHA-256) yazılır.
 - **Süreç günlüğü** (`.etki/process-log.jsonl`, gitignore'da): Sor ekranı soruları
-  (soru → strateji → eşleşen düğümler → asistan yanıtı) ve indeksleme koşuları buraya
-  eklenir. Sorular serbest metin olduğundan **kişisel veri içerebilir** — dosya
-  veritabanıyla aynı ikametgâh/erişim kurallarına tabidir; KVKK silme talebinde
-  dosyadan ilgili satırlar ayıklanmalıdır.
+  (soru → strateji → eşleşen düğümler → asistan yanıtı), indeksleme koşuları ve
+  **talep alma** olayları (`intake` = çekilen talep, `intake_response` = geri yazma)
+  buraya eklenir. Sorular ve talep metinleri serbest metin olduğundan **kişisel veri
+  içerebilir** — dosya veritabanıyla aynı ikametgâh/erişim kurallarına tabidir; KVKK
+  silme talebinde dosyadan ilgili satırlar ayıklanmalıdır.
 
 ## Karar wiki'si (dosya-tabanlı karar hafızası)
 - Her triyaj kararı `.etki/wiki-{proje}/decisions/` altına markdown olarak **projeksiyon** edilir (tek doğruluk kaynağı veritabanıdır; wiki `python -m etki.wiki rebuild` ile her an yeniden üretilebilir).

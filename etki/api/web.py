@@ -1798,6 +1798,9 @@ async def _files_context(
     error: str | None = None,
     attempted_adapter: str | None = None,
     attempted_opts: dict | None = None,
+    attempted_intake_adapter: str | None = None,
+    attempted_intake_opts: dict | None = None,
+    attempted_intake_mode: str | None = None,
 ) -> dict:
     repos = [
         {"name": r.name, "source": r.git_url or r.src_root or "—", "engine": r.engine}
@@ -1805,6 +1808,9 @@ async def _files_context(
     ]
     wi = project.connectors.work_items
     adapter_sel = attempted_adapter or wi.adapter
+    intake = project.connectors.request_intake
+    intake_sel = attempted_intake_adapter or intake.adapter
+    intake_mode = attempted_intake_mode or project.intake_response_mode
     # A broken documents connector must not take the settings screen down with it —
     # that is exactly the screen where the connector gets fixed.
     try:
@@ -1821,8 +1827,12 @@ async def _files_context(
         # A pre-configured adapter that is unlisted (e.g. its plugin got disabled)
         # still shows as selected — the template appends it.
         "work_item_adapters": [a for a in available_adapters("work_items") if a != "fake"],
+        "intake": {"adapter": intake_sel, "mode": intake_mode},
+        "intake_adapters": [a for a in available_adapters("request_intake") if a != "fake"],
+        "intake_modes": ["on_decision", "on_triage", "both"],
         "degraded": ctx.degraded_adapters(project.id),
         **_wi_form_context(project, adapter_sel, attempted=attempted_opts),
+        **_intake_form_context(project, intake_sel, attempted=attempted_intake_opts),
         "llm_profile": {
             "language": project.language,
             "domain_profile": project.domain_profile or "",
@@ -1914,6 +1924,32 @@ def _wi_form_context(
     return {
         "wi_fields": fields,
         "wi_raw": "".join(f"{k}: {v}\n" for k, v in opts.items()),
+    }
+
+
+def _intake_form_fields(adapter: str, current: dict) -> list[dict] | None:
+    """Request-intake form: None → no model → free-form textarea fallback."""
+    model = options_model_for("request_intake", adapter)
+    if model is None:
+        return None
+    return _schema_fields(model, current)
+
+
+def _intake_form_context(
+    project: ProjectConfig,
+    adapter: str,
+    mode: str = "auto",
+    attempted: dict | None = None,
+) -> dict:
+    """Context for the intake_form.html fragment (twin of _wi_form_context)."""
+    current = project.connectors.request_intake
+    opts = attempted if attempted is not None else (
+        current.options if adapter == current.adapter else {}
+    )
+    fields = None if mode == "raw" else _intake_form_fields(adapter, opts)
+    return {
+        "intake_fields": fields,
+        "intake_raw": "".join(f"{k}: {v}\n" for k, v in opts.items()),
     }
 
 
@@ -2125,6 +2161,84 @@ async def project_work_items(
     except (ValueError, KeyError) as exc:
         return await _reject(str(exc), opts)
     await _reindex(project_id)
+    return RedirectResponse(f"/projeler/{project_id}/dosyalar", status_code=303)
+
+
+@router.get("/projeler/{project_id}/ayarlar/intake/form", response_class=HTMLResponse,
+            dependencies=[Depends(require_project_access)])
+async def project_intake_form(
+    request: Request, project_id: str, adapter: str = "", mode: str = "auto"
+) -> Response:
+    """Options-form fragment for the selected request-intake adapter (twin of the
+    work-items form). Saving goes through the one POST below."""
+    project = projects_store.get(project_id)
+    if project is None:
+        return _error_fragment(t("err.project_not_found"))
+    return templates.TemplateResponse(
+        request,
+        "intake_form.html",
+        {"project": {"id": project.id}, **_intake_form_context(project, adapter, mode=mode)},
+    )
+
+
+@router.post("/projeler/{project_id}/ayarlar/intake",
+             dependencies=[Depends(require_pmo), Depends(require_project_access)])
+async def project_intake(
+    request: Request,
+    project_id: str,
+    ctx: CtxDep,
+    adapter: Annotated[str, Form()],
+    mode: Annotated[str, Form()] = "on_decision",
+    options: Annotated[str, Form()] = "",
+) -> Response:
+    project = projects_store.get(project_id)
+    if project is None:
+        return RedirectResponse("/", status_code=303)
+
+    async def _reject(message: str, opts: dict | None = None) -> Response:
+        return templates.TemplateResponse(
+            request, "project_files.html",
+            (await _files_context(ctx, project, error=message,
+                                  attempted_intake_adapter=adapter,
+                                  attempted_intake_opts=opts,
+                                  attempted_intake_mode=mode)),
+            status_code=400,
+        )
+
+    if adapter not in available_adapters("request_intake") and adapter != "none":
+        return await _reject(t(
+            "pf.unknown_adapter", name=adapter,
+            known=", ".join(a for a in available_adapters("request_intake") if a != "fake"),
+        ))
+    if mode not in ("on_decision", "on_triage", "both"):
+        return await _reject(
+            t("pf.unknown_adapter", name=mode, known="on_decision, on_triage, both")
+        )
+    form = await request.form()
+    if "options" in form:
+        opts: dict = _parse_options(options)
+    else:
+        opts = {
+            k[4:]: str(v)
+            for k, v in form.items()
+            if k.startswith("opt_") and str(v).strip() != ""
+        }
+    model = options_model_for("request_intake", adapter)
+    if model is not None:
+        try:
+            model.model_validate(opts)
+        except ValidationError as exc:
+            msgs = "; ".join(
+                f"{'.'.join(str(p) for p in e['loc'])}: {e['msg']}" for e in exc.errors()
+            )
+            return await _reject(t("pf.invalid_options", msgs=msgs), opts)
+    try:
+        projects_store.set_intake(project_id, adapter, opts, mode)
+    except (ValueError, KeyError) as exc:
+        return await _reject(str(exc), opts)
+    # Intake does not affect the index — just rebuild the context so the new
+    # provider/responder bindings take effect (no _reindex).
+    get_context.cache_clear()
     return RedirectResponse(f"/projeler/{project_id}/dosyalar", status_code=303)
 
 
@@ -2474,6 +2588,8 @@ def _caps_summary(caps: Any) -> str:
     parts: list[str] = []
     if caps.network:
         parts.append(t("plugins.market_caps_network"))
+    if getattr(caps, "external_write", False):
+        parts.append(t("plugins.market_caps_external_write"))
     parts.append(f"{t('plugins.market_caps_fs')}: {caps.filesystem}")
     if caps.endpoints:
         parts.append(f"{t('plugins.market_caps_endpoints')}: {', '.join(caps.endpoints)}")

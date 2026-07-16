@@ -36,6 +36,8 @@ them *structurally*, no base class to inherit:
 | `LLMClient` | the LLM serving layer (optional) | `complete_json(system=, user=)` |
 | `EmbeddingProvider` | embeddings, OpenAI-compatible (optional) | `embed(texts, kind=)` |
 | `RerankProvider` | a TEI-compatible cross-encoder (optional) | `rerank(query, documents)` |
+| `RequestIntakeProvider` | pulls new client requests from a tracker (poll) | `fetch_new(cursor=, limit=20)`, `capabilities()` |
+| `ResponseChannel` | writes the decision back (comment/status) — the first WRITING port | `post_response(response)`, `capabilities()` |
 | `WikiStore` | the decision-memory store (default: filesystem markdown) | `write_decision(case)`, `search(project, query)`, `rebuild(project, cases)`, `write_precedent(…)`, `write_disputed(…)` |
 | `GraphQueryPort` | retrieval over the knowledge graph | `find_k_nodes(text, k)`, `expand(seeds, hops, budget, query=)`, `nl_query(question)` |
 
@@ -162,6 +164,8 @@ PLUGIN = PluginSpec(
     capabilities=SecurityCapabilities(  # SECURITY declaration (KVKK inventory),
         network=True,                   # separate from the functional Capabilities
         filesystem="none",
+        external_write=False,           # True if the plugin WRITES out (e.g. a ResponseChannel
+                                        # posting comments) — shown at install time
         endpoints=["acme.example.com"],
     ),
     adapters=(AdapterFactory(port="work_items", name="acme",
@@ -269,6 +273,11 @@ the plugin declares:
   automatically once the plugin loads. Options are entered as `key: value`
   lines and validated through your `options_model` at build time (secrets as
   `env:VAR` references, resolved by core — your plugin only ever sees values).
+- **Talep Kanalı card** (same screen) is the twin for a `RequestIntakeProvider` /
+  `ResponseChannel` pair: one card configures the adapter, its options (typed
+  from your `options_model`) and the write-back timing (`on_decision` / `on_triage`
+  / `both`) together. An `external_write` capability surfaces in the install
+  confirm and the plugin/market cards as "dış sisteme yazma".
 - Every triage decision is stamped with the active plugin set
   (`TriageDecision.plugin_set`, e.g. `etki-plugin-acme@1.0.0`) for the audit
   trail.
@@ -289,6 +298,8 @@ it encodes (reviewed against the Jira/Linear adapters and the fakes):
 | `EmbeddingProvider` | one vector per input, aligned, uniform non-zero dimension, floats; both `kind`s accepted; **deterministic** for the same input (auditable matching) |
 | `RerankProvider` | one float score per document, aligned with input order (raw logits) |
 | `RegistryMetadataProvider` | `latest` returns `PackageMetadata` or `None`; unknown package / backend failure **degrades to `None`**, never raises |
+| `RequestIntakeProvider` | `fetch_new` returns an `IntakeBatch` (≤ `limit`; every item has a non-empty `external_id` and some title/description); an exhausted source returns an **empty list, never an exception**; the cursor is **opaque** and makes monotonic progress (re-fetching with a returned cursor does not re-emit its ids) |
+| `ResponseChannel` | `post_response` to a known target succeeds; an unknown target **RAISES** (failures must surface — the host is the only best-effort layer, and posting is **not idempotent**, so the host dedups) |
 
 Two ways to run it:
 

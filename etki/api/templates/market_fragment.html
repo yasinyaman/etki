@@ -59,7 +59,7 @@
     </p>
     <p style="margin:6px 0 0; font-size:12px; color:var(--pmo-muted);">
       {{ t('plugins.market_caps') }}:
-      {% if r.caps.network %}{{ t('plugins.market_caps_network') }} · {% endif %}{{ t('plugins.market_caps_fs') }}: {{ r.caps.filesystem }}
+      {% if r.caps.network %}{{ t('plugins.market_caps_network') }} · {% endif %}{% if r.caps.external_write %}{{ t('plugins.market_caps_external_write') }} · {% endif %}{{ t('plugins.market_caps_fs') }}: {{ r.caps.filesystem }}
       {% if r.caps.endpoints %} · {{ t('plugins.market_caps_endpoints') }}: <span style="font-family:var(--pmo-mono);">{{ r.caps.endpoints|join(', ') }}</span>{% endif %}
       {% if r.caps.notes %} · {{ r.caps.notes }}{% endif %}
     </p>

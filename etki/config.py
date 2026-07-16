@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, Field
@@ -29,6 +29,15 @@ class ConnectorsConfig(BaseModel):
     work_items: ConnectorConfig = Field(default_factory=ConnectorConfig)
     code_repo: ConnectorConfig = Field(default_factory=ConnectorConfig)
     documents: ConnectorConfig = Field(default_factory=ConnectorConfig)
+    # Request intake (poll new client requests) + response channel (write the
+    # decision back). Default "none" = OFF (ConnectorConfig defaults to "fake",
+    # which would silently enable the feature).
+    request_intake: ConnectorConfig = Field(
+        default_factory=lambda: ConnectorConfig(adapter="none")
+    )
+    response_channel: ConnectorConfig = Field(
+        default_factory=lambda: ConnectorConfig(adapter="none")
+    )
 
 
 class Settings(BaseSettings):
@@ -137,6 +146,14 @@ class Settings(BaseSettings):
     #   consumed-by-category totals in place.
     reindex_interval_hours: float = 0.0
     pool_refresh_minutes: float = 0.0
+    # Request-intake polling loop (OFF by default; cron via `python -m etki.intake`
+    # is the recommended production path). Each tick polls every project's intake
+    # provider and triages new requests into PENDING cases.
+    intake_poll_minutes: float = 0.0
+    intake_batch_limit: int = 20  # max requests pulled per project per tick
+    # Public base URL of this deployment ("https://etki.example.com"), used only
+    # to embed a case link in write-back comments. Empty → no link.
+    public_base_url: str = ""
 
     # LLM seam (optional) — OFF BY DEFAULT (keep the gate deterministic).
     # Two providers: "openai" (Ollama/vLLM, OpenAI-compatible) or "anthropic" (Claude API).
@@ -251,6 +268,10 @@ class ProjectConfig(BaseModel):
     # Project-specific module hints (module → keywords); merged on top of the domain
     # profile hints (config/domains/*.hints.yaml). No dictionary baked into the engine core.
     module_hints: dict[str, list[str]] = Field(default_factory=dict)
+    # When intake write-back happens (copilot invariant → default after the PMO
+    # decides). Application policy: survives an adapter swap, so it lives here,
+    # not in the connector options.
+    intake_response_mode: Literal["on_decision", "on_triage", "both"] = "on_decision"
 
     def resolved_index_path(self) -> str:
         return self.index_path.replace("{id}", self.id)

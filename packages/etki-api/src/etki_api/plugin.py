@@ -29,6 +29,8 @@ PortName = Literal[
     "embedding",
     "rerank",
     "registry_metadata",
+    "request_intake",
+    "response_channel",
 ]
 
 
@@ -41,6 +43,11 @@ class SecurityCapabilities(BaseModel):
 
     network: bool = False
     filesystem: Literal["none", "read", "write"] = "none"
+    # The plugin WRITES to an external system (tracker comments, status
+    # transitions) — the first writing capability. Shown at install time so the
+    # operator sees that data leaves the boundary; separate from `network`
+    # (a read-only adapter also needs the network).
+    external_write: bool = False
     endpoints: list[str] = []  # declared outbound hosts (documentation; sandbox seam)
     notes: str = ""
 

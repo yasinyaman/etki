@@ -202,6 +202,18 @@ class ChatTurn(BaseModel):
     at: datetime | None = None
 
 
+class SourceRef(BaseModel):
+    """Provenance of an intake-created case: where it came from and the
+    write-back target. ``source`` is the adapter name ("jira"); ``external_id``
+    is the immutable vendor id used to post the decision back."""
+
+    source: str
+    external_id: str
+    key: str = ""
+    url: str | None = None
+    reporter: str | None = None
+
+
 class CaseFile(BaseModel):
     """The file that collects all sub-request decisions for one request. Submitted
     for PMO approval."""
@@ -217,6 +229,10 @@ class CaseFile(BaseModel):
     pre_analysis: str | None = None
     # Pre-analysis chat about the triage — each turn is saved to the case immediately.
     chat_turns: list[ChatTurn] = Field(default_factory=list)
+    # Set when the case was created by the intake loop (vs the UI/API). Carries
+    # the write-back target; None for manually-entered requests. Round-trips via
+    # the payload JSON column — no DB migration (pre_analysis precedent).
+    source_ref: SourceRef | None = None
 
 
 class Index(BaseModel):

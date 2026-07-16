@@ -34,7 +34,9 @@ from etki_api.ports import DocumentSourceProvider as DocumentSourceProvider
 from etki_api.ports import EmbeddingProvider as EmbeddingProvider
 from etki_api.ports import LLMClient as LLMClient
 from etki_api.ports import RegistryMetadataProvider as RegistryMetadataProvider
+from etki_api.ports import RequestIntakeProvider as RequestIntakeProvider
 from etki_api.ports import RerankProvider as RerankProvider
+from etki_api.ports import ResponseChannel as ResponseChannel
 from etki_api.ports import WorkItemProvider as WorkItemProvider
 
 

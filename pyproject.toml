@@ -49,6 +49,7 @@ plugins = ["sigstore>=4.3,<5"]
 [dependency-groups]
 dev = [
     "etki-plugin-linear",
+    "etki-plugin-jira",
     "pytest>=8.2",
     "pytest-asyncio>=0.23",
     "httpx>=0.27",
@@ -77,6 +78,7 @@ members = ["packages/*"]
 [tool.uv.sources]
 etki-api = { workspace = true }
 etki-plugin-linear = { workspace = true }
+etki-plugin-jira = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["etki"]
@@ -84,7 +86,7 @@ packages = ["etki"]
 [tool.ruff]
 target-version = "py312"
 line-length = 100
-src = ["etki", "tests", "eval", "packages/etki-api/src", "packages/etki-plugin-linear/src"]
+src = ["etki", "tests", "eval", "packages/etki-api/src", "packages/etki-plugin-linear/src", "packages/etki-plugin-jira/src"]
 extend-exclude = ["samples", ".etki", "alembic/versions"]
 
 [tool.ruff.lint]
@@ -115,5 +117,5 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["tests", "packages/etki-api/tests", "packages/etki-plugin-linear/tests"]
+testpaths = ["tests", "packages/etki-api/tests", "packages/etki-plugin-linear/tests", "packages/etki-plugin-jira/tests"]
 addopts = "-q"

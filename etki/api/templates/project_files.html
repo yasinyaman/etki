@@ -99,6 +99,39 @@
     </form>
   </div>
 
+  <!-- REQUEST INTAKE / RESPONSE CHANNEL -->
+  <div style="background:#fff; border:1px solid #E6E2D9; border-radius:13px; padding:20px 22px; box-shadow:0 1px 2px rgba(16,40,28,.03); margin-top:16px;">
+    <h3 style="margin:0 0 4px; font-size:15.5px; font-weight:700;">{{ t('pf.intake_title') }}</h3>
+    <p style="margin:0 0 14px; font-size:12.5px; color:var(--pmo-muted);">{{ t('pf.intake_desc')|safe }}</p>
+    {% for h in degraded if h.port in ('request_intake', 'response_channel') %}
+    <div class="summary err" style="margin:0 0 12px;" title="{{ h.error or '' }}">⚠ {{ t('pd.degraded_' + h.port, name=h.adapter) }}</div>
+    {% endfor %}
+    <form method="post" action="/projeler/{{ project.id }}/ayarlar/intake">
+      <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+        <label style="font-size:13px; font-weight:600; color:#33424A;">{{ t('pf.intake_adapter') }}</label>
+        <select name="adapter"
+                hx-get="/projeler/{{ project.id }}/ayarlar/intake/form"
+                hx-include="this" hx-target="#intake-options" hx-swap="innerHTML" hx-trigger="change">
+          {% for a in intake_adapters %}
+          <option value="{{ a }}" {{ 'selected' if a == intake.adapter else '' }}>{{ a }}</option>
+          {% endfor %}
+          {# Configured but currently unresolvable (e.g. its plugin got disabled): keep it selected #}
+          {% if intake.adapter not in intake_adapters and intake.adapter not in ('none', '') %}
+          <option value="{{ intake.adapter }}" selected>{{ intake.adapter }}</option>
+          {% endif %}
+        </select>
+        <label style="font-size:13px; font-weight:600; color:#33424A;">{{ t('pf.intake_mode') }}</label>
+        <select name="mode">
+          {% for m in intake_modes %}
+          <option value="{{ m }}" {{ 'selected' if m == intake.mode else '' }}>{{ t('intake.mode_' + m) }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div id="intake-options">{% include "intake_form.html" %}</div>
+      <div style="margin-top:10px;"><button class="btn" type="submit">{{ t('pf.save_index') }}</button></div>
+    </form>
+  </div>
+
   <!-- LLM / LANGUAGE & DOMAIN PROFILE -->
   <div style="background:#fff; border:1px solid #E6E2D9; border-radius:13px; padding:20px 22px; box-shadow:0 1px 2px rgba(16,40,28,.03); margin-top:16px;">
     <h3 style="margin:0 0 4px; font-size:15.5px; font-weight:700;">{{ t('pf.llm_profile') }} {{ llm_chip(llm) }}</h3>

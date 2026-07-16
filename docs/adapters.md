@@ -119,6 +119,40 @@ list of available adapters.
 
 ---
 
+## Request intake + response (`RequestIntakeProvider` / `ResponseChannel`)
+
+These two ports (etki-api 0.1.2) let Etki **pull** new client requests from a
+tracker and **write the decision back** — the first WRITING integration. The
+core owns the loop, dedup, audit and the write-back policy; the adapter is a
+dumb transport. Configure via *Dosyalar → Talep Kanalı* or
+`connectors.request_intake` / `connectors.response_channel`.
+
+### `jira` — Jira Cloud (REST v3) — ships as a plugin
+
+Package [`etki-plugin-jira`](https://github.com/yasinyaman/etki/tree/master/packages/etki-plugin-jira)
+(depends only on `etki-api` + httpx). One options model + one credential set
+drives both adapters.
+
+- **Auth:** HTTP Basic (`email:api_token`, base64). **Options:** `base_url`,
+  `email`, `api_token` (use `env:JIRA_TOKEN`), `project_key` **or** `jql`,
+  `page_size` (20), `timeout` (30s).
+- **Intake:** JQL search `GET /rest/api/3/search/jql` (enhanced endpoint;
+  `project = "<key>"` unless an explicit `jql` is given). Fields pulled:
+  `id`→`external_id`, `key`, `summary`→`title`, `description` (**ADF flattened**
+  to plain text — tables/mentions dropped, only the words matter for triage),
+  `creator.displayName`→`reporter`, `created`, `labels`, `browse/{key}`→`url`.
+- **Cursor:** a **minute-precision `created` watermark** (`ORDER BY created ASC`).
+  The boundary minute is re-queried with `>=` on purpose; the host's
+  deterministic request-id dedup absorbs the overlap, so nothing is missed.
+- **Write-back:** `POST /rest/api/3/issue/{id}/comment` with the host-composed,
+  already-localized decision text wrapped in one ADF paragraph per line. Raises
+  on failure so the host can record `RESPONSE_POSTED ok=false`. **Security:**
+  `external_write=true` (declared and shown at install time).
+- Requires a live Jira Cloud site → integration is CI-skipped; ADF/mapping/cursor
+  math are unit-tested and the offline conformance doubles run credential-free.
+
+---
+
 ## Document source providers (`DocumentSourceProvider`)
 
 All of them only **list documents** and **fetch raw content**; text extraction

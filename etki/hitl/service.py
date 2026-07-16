@@ -11,6 +11,7 @@ never blocking the approval itself.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -43,10 +44,14 @@ class ApprovalService:
         repo: CaseFileRepository,
         wiki: WikiStore | None = None,
         ingest: IngestPort | None = None,
+        on_decided: Callable[[CaseFile], None] | None = None,
     ) -> None:
         self._repo = repo
         self._wiki = wiki
         self._ingest = ingest
+        # Called once a case reaches a terminal status (intake write-back hook).
+        # Best-effort like sync_wiki/ingest — never blocks the approval.
+        self._on_decided = on_decided
 
     def sync_wiki(self, case: CaseFile) -> None:
         """Re-projects the case into the decision wiki, best-effort: the wiki is a
@@ -178,6 +183,13 @@ class ApprovalService:
                 )
             except Exception:  # noqa: BLE001 — derived memory only; the DB record is safe
                 logger.warning("HITL ingest başarısız: %s", case_id, exc_info=True)
+        # Intake write-back (best-effort): only when the case just reached a
+        # terminal status. Never blocks the approval.
+        if self._on_decided is not None and decided:
+            try:
+                self._on_decided(case)
+            except Exception:  # noqa: BLE001 — write-back is best-effort
+                logger.warning("intake yanıtı tetiklenemedi: %s", case_id, exc_info=True)
         return result
 
     def _audit(self, case_id: str, actor: str, action: str, detail: dict, at: datetime) -> None:
