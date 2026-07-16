@@ -31,7 +31,7 @@ class Capabilities(BaseModel):
 
 @runtime_checkable
 class WorkItemProvider(Protocol):
-    """Abstracts the work-tracking tool (GLPI/Jira/ADO...). Effort arrives normalized."""
+    """Abstracts the work-tracking tool (Jira/GitLab/ADO...). Effort arrives normalized."""
 
     async def get_work_item(self, item_id: str) -> WorkItem: ...
 

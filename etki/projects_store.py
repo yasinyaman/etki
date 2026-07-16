@@ -83,7 +83,7 @@ def create_project(project_id: str, name: str, contract_id: str) -> ProjectConfi
     )
     # A new project has no historical work items → 'none' (so fake seed tickets don't
     # leak into effort; effort comes from code metrics). The user can later attach
-    # Jira/GLPI/file from the UI.
+    # Jira/GitLab/file from the UI.
     project.connectors.work_items = ConnectorConfig(adapter="none")
     _upsert(project)
     return project

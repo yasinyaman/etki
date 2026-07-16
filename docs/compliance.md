@@ -21,7 +21,7 @@ separately.
 |---|---|---|
 | Contract/spec text and extracted scope clauses | project index (`.etki/index-*.json`) + uploaded files under the project workspace | stays on the deployment host |
 | Code metadata (module names, size/complexity/churn metrics) | project index | no source code is stored in the index beyond identifiers and metrics |
-| Historical work items (titles, descriptions, logged effort) | pulled from the configured tracker (file/Jira/GLPI/GitLab) at index/triage time | normalized; tracker credentials come from environment references (`env:VAR`), never from config files |
+| Historical work items (titles, descriptions, logged effort) | pulled from the configured tracker (file/Jira/GitLab) at index/triage time | normalized; tracker credentials come from environment references (`env:VAR`), never from config files |
 | Case files (request text, decisions, evidence chains, pre-analyses, chat turns) | the application database (SQLite or Postgres) | the audit record — see below |
 | Users | `users` table: username, pbkdf2 password hash, role; per-user project grants in `user_projects` | no plaintext credentials; managed from the UI (Settings → Users, pmo-only) |
 | Decision wiki (markdown projection of case files: request texts, reasoning, precedents, disputed clauses) | `.etki/wiki-{project}/` (`ETKI_WIKI_DIR`; empty = off) | pure DB projection — regenerable, never authoritative; same residency/access rules as the DB; erasure = delete the case in the DB, then `python -m etki.wiki rebuild` |

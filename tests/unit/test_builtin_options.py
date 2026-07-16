@@ -10,7 +10,6 @@ from etki.config import ConnectorConfig
 # time and an undefined variable would fail the test for the wrong reason.
 SAMPLES: dict[str, dict] = {
     "file": {"path": "samples/demo_project/work_items.json"},
-    "glpi": {"base_url": "https://x", "app_token": "a", "user_token": "u"},
     "jira": {"base_url": "https://x", "email": "e@x", "api_token": "t"},
     "gitlab": {"base_url": "https://x", "project": "grp/proj", "token": "t"},
     "redmine": {"base_url": "https://x", "api_key": "k"},

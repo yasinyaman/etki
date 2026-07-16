@@ -117,17 +117,6 @@ list of available adapters.
   **Zero-effort similars are dropped** so they can't collapse the PERT range;
   `supports_effort_tracking` is only reported when `hours_per_point` is set.
 
-### `glpi` — GLPI (REST)
-
-- **Auth:** `initSession` with app+user tokens. **Effort model:** effort lives on the
-  **task, not the ticket** — `Ticket/{id}/TicketTask` is fetched and
-  `Σ actiontime` (seconds) becomes `effort_seconds`.
-- **Fields pulled:** ticket `id`, `name`→`title`, `content`→`description`, status.
-- **Similar-work search:** the request's three most significant words are OR-matched
-  as `contains` criteria against the ticket title (field 1) and content (field 21);
-  zero hits fall back to the recent-ticket listing (a full request sentence would
-  never substring-match, hence token search).
-
 ---
 
 ## Document source providers (`DocumentSourceProvider`)

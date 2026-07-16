@@ -4,6 +4,12 @@ All notable changes to the plugin API. Semver: major = breaking, minor = new
 optional method/field, patch = fixes. `0.x` until the first external plugin
 ships — breaking changes are allowed but MUST be announced here.
 
+## [Unreleased]
+
+### Changed
+- Docstring vendor examples no longer reference GLPI (the builtin GLPI adapter
+  was removed from the etki app). No API or contract change.
+
 ## [0.1.1] - 2026-07-15
 
 ### Added

@@ -38,7 +38,7 @@ def test_jira_capabilities_declare_effort_tracking():
 
 
 class _UnavailablePM:
-    """An unreachable remote PM environment (Jira/GLPI down)."""
+    """An unreachable remote PM environment (Jira down)."""
 
     async def get_work_item(self, item_id: str):
         raise RuntimeError("PM unavailable")

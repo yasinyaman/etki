@@ -18,8 +18,8 @@ from pydantic import BaseModel, Field
 
 class WorkItem(BaseModel):
     """Vendor-agnostic, normalized work item. ``effort_seconds`` is the single
-    source of truth for effort (GLPI actiontime, Jira worklog... converted in
-    the adapter)."""
+    source of truth for effort (Jira worklog, GitLab total_time_spent...
+    converted in the adapter)."""
 
     id: str
     title: str

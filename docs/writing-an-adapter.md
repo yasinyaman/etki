@@ -30,7 +30,7 @@ them *structurally*, no base class to inherit:
 
 | Port | Abstracts | Methods |
 |---|---|---|
-| `WorkItemProvider` | the work tracker (Jira, GLPI, ADO…) | `get_work_item(id)`, `find_similar(description, limit=5)`, `capabilities()` |
+| `WorkItemProvider` | the work tracker (Jira, GitLab, ADO…) | `get_work_item(id)`, `find_similar(description, limit=5)`, `capabilities()` |
 | `CodeRepositoryProvider` | repo + module graph (Joern, AST…) | `list_modules()`, `get_impacted(module_hint)`, `capabilities()` |
 | `DocumentSourceProvider` | the document source (filesystem, Confluence, SharePoint…) | `list_documents()`, `fetch_content(id)`, `capabilities()` |
 | `LLMClient` | the LLM serving layer (optional) | `complete_json(system=, user=)` |
@@ -42,7 +42,7 @@ them *structurally*, no base class to inherit:
 All data crossing a port is **normalized** in vendor-neutral models
 (`etki/core/models.py`). The single most important normalization:
 **`WorkItem.effort_seconds`** — whatever the tracker calls time spent (Jira
-`timespent`, GLPI `actiontime`, GitLab `total_time_spent`, Redmine `spent_hours`,
+`timespent`, GitLab `total_time_spent`, Redmine `spent_hours`,
 Azure DevOps `CompletedWork`), the adapter converts it to seconds. That field
 powers effort-by-analogy estimation.
 
@@ -248,7 +248,7 @@ the plugin declares:
 The ports are `runtime_checkable Protocol`s — `isinstance` only checks that the
 methods EXIST. The **conformance suite** (`etki_api.conformance`, extra
 `etki-api[conformance]`) pins the documented SEMANTICS. These are the contracts
-it encodes (reviewed against the GLPI/Jira/Linear adapters and the fakes):
+it encodes (reviewed against the Jira/Linear adapters and the fakes):
 
 | Port | Contract |
 |---|---|

@@ -24,12 +24,6 @@ class FileOptions(_Options):
     path: str
 
 
-class GlpiOptions(_Options):
-    base_url: str
-    app_token: str
-    user_token: str
-
-
 class JiraOptions(_Options):
     base_url: str
     email: str
@@ -60,7 +54,6 @@ class AzureDevOpsOptions(_Options):
 BUILTIN_OPTION_MODELS: dict[str, dict[str, type[BaseModel]]] = {
     "work_items": {
         "file": FileOptions,
-        "glpi": GlpiOptions,
         "jira": JiraOptions,
         "gitlab": GitlabOptions,
         "redmine": RedmineOptions,

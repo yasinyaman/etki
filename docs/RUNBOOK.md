@@ -150,7 +150,7 @@ a real adapter fell back.
 
 Moving to a new organization = a **config change** (`connectors.*.yaml`); core code does not change:
 ```yaml
-work_items: { adapter: glpi|jira|file, ... }
+work_items: { adapter: jira|gitlab|file, ... }
 code_repo:  { adapter: joern|ast|graphify, ... }
 documents:  { adapter: filesystem|composite, ... }
 ```

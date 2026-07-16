@@ -1,7 +1,7 @@
 """File-based WorkItemProvider — normalizes a JSON/CSV ticket export.
 
 Vendor-agnostic: converts exported ticket data into `WorkItem.effort_seconds`.
-Provides a testable feed path in place of a real GLPI/Jira.
+Provides a testable feed path in place of a real Jira/GitLab.
 """
 
 from __future__ import annotations

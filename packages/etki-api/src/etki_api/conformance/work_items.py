@@ -45,7 +45,7 @@ class WorkItemProviderContract(PortContract):
     @pytest.mark.asyncio
     async def test_nonsense_query_returns_list_not_error(self, provider: Any) -> None:
         # No-match must degrade to a list (possibly empty or a recent-items
-        # fallback à la GLPI) — never an exception.
+        # fallback) — never an exception.
         items = await provider.find_similar(NONSENSE_PROBE, limit=3)
         assert isinstance(items, list)
         assert len(items) <= 3

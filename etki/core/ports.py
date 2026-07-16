@@ -1,5 +1,5 @@
 """Abstract ports (hexagonal architecture). The core talks ONLY to these; it
-knows no vendor name (GLPI/GitHub/SharePoint). Adapters implement these
+knows no vendor name (Jira/GitHub/SharePoint). Adapters implement these
 Protocols and normalize away the vendor differences.
 
 The EXTERNAL-integration ports (WorkItemProvider, CodeRepositoryProvider,

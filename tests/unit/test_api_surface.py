@@ -58,9 +58,9 @@ _MOVED_PORTS = [
 ]
 
 # Built-in adapters that must compile against etki-api ALONE (the Faz 1 gate;
-# linear left this list when it became the out-of-tree plugin in Faz 2).
+# linear left this list when it became the out-of-tree plugin in Faz 2, glpi
+# when the adapter was removed from the project in 2026-07).
 _API_ONLY_ADAPTERS = [
-    "etki.adapters.glpi_work_item",
     "etki.adapters.jira_work_item",
 ]
 

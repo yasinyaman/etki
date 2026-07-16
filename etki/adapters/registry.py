@@ -22,7 +22,6 @@ from etki.adapters.file_work_item import FileWorkItemProvider
 from etki.adapters.filesystem_document import FileSystemDocumentSourceProvider
 from etki.adapters.git_churn import compute_churn
 from etki.adapters.gitlab_work_item import GitlabWorkItemProvider
-from etki.adapters.glpi_work_item import GlpiWorkItemProvider
 from etki.adapters.jira_work_item import JiraWorkItemProvider
 from etki.adapters.joern_code_repo import JoernCodeRepositoryProvider
 from etki.adapters.options import (
@@ -30,7 +29,6 @@ from etki.adapters.options import (
     AzureDevOpsOptions,
     FileOptions,
     GitlabOptions,
-    GlpiOptions,
     JiraOptions,
     RedmineOptions,
 )
@@ -160,7 +158,7 @@ def build_package_registry(settings: Settings):  # type: ignore[no-untyped-def] 
 # Builtin adapter names per port — the single source for error messages and the
 # UI's adapter dropdown ("empty" stays an accepted alias of "none", not listed).
 _BUILTIN_ADAPTERS: dict[str, list[str]] = {
-    "work_items": ["none", "fake", "file", "glpi", "jira", "gitlab", "redmine", "azure_devops"],
+    "work_items": ["none", "fake", "file", "jira", "gitlab", "redmine", "azure_devops"],
     "code_repo": ["fake", "ast", "joern", "graphify"],
     "documents": ["fake", "filesystem", "composite", "confluence", "sharepoint"],
 }
@@ -280,7 +278,7 @@ def build_code_repo(cfg: ConnectorConfig) -> CodeRepositoryProvider:
 def _secret(value: str) -> str:
     """Resolves an `env:VARIABLE` reference from the environment; returns a plain value as-is.
 
-    Secrets (Jira/GLPI tokens) are kept in projects.yaml as a reference like `env:JIRA_TOKEN`
+    Secrets (Jira/GitLab tokens) are kept in projects.yaml as a reference like `env:JIRA_TOKEN`
     instead of being written in plain text, and are read from the environment at runtime
     (KVKK / secrets management)."""
     if value.startswith("env:"):
@@ -302,11 +300,6 @@ def build_work_items(cfg: ConnectorConfig) -> WorkItemProvider:
     if cfg.adapter == "file":
         fo = FileOptions.model_validate(cfg.options)
         return FileWorkItemProvider(fo.path)
-    if cfg.adapter == "glpi":
-        go = GlpiOptions.model_validate(cfg.options)
-        return GlpiWorkItemProvider(
-            go.base_url, _secret(go.app_token), _secret(go.user_token)
-        )
     if cfg.adapter == "jira":
         jo = JiraOptions.model_validate(cfg.options)
         return JiraWorkItemProvider(jo.base_url, jo.email, _secret(jo.api_token), jo.jql)

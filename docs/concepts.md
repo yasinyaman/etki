@@ -88,7 +88,7 @@ is active is **configuration, never code** — see [Writing an adapter](writing-
 flowchart LR
     subgraph vendors ["Adapters — selected by config, never code"]
         direction TB
-        A1["Jira / GLPI / file export"]
+        A1["Jira / GitLab / file export"]
         A2["Joern CPG / Python AST / git churn"]
         A3["Filesystem / docx·xlsx·pdf upload"]
         A4["Claude API / Ollama / vLLM"]

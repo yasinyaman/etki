@@ -82,7 +82,7 @@ _RISK_MATRIX: dict[tuple[str, str], RiskLevel] = {
 
 
 class TriageEngine:
-    """Takes the three ports + baseline via DI; knows no concrete adapters (Joern/GLPI...)."""
+    """Takes the three ports + baseline via DI; knows no concrete adapters (Joern/Jira...)."""
 
     def __init__(
         self,
@@ -908,7 +908,7 @@ class TriageEngine:
         return None, "weak", impacted, note
 
     async def _safe_find_similar(self, text: str) -> tuple[list[WorkItem], bool]:
-        # If the remote PM environment (Jira/GLPI) is unreachable, triage must not
+        # If the remote PM environment (Jira/GitLab) is unreachable, triage must not
         # blow up → effort falls back to the code metric. The failure flag only
         # changes the FROZEN EVIDENCE TEXT ("source unreachable" instead of "no
         # similar work") — decision/confidence/effort follow the exact same path

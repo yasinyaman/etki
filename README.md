@@ -42,7 +42,7 @@ Every answer shows its full evidence chain: the contract clauses checked, the be
 - **Ask (Sor)** — a single-input question box over the project's knowledge graph: an instant **deterministic answer** (scope clauses, modules, dependencies — source-labeled) and, if an LLM is configured, an AI answer **grounded in that deterministic result**. Every question and answer is appended to the project's process log.
 - **Flow map (Sankey)** — **Request → Requirement (scope clause) → Code module** interaction; interactive, with node detail. Each triage also has its own flow graph.
 - **Explorable index** — a per-clause detail screen (rulings, memory and pool status per scope item), a per-module code-graph table (repo-scoped), a dependency card with version-compare / OSV lookup, and an index-run history with freshness badges.
-- **Document management** — upload Word/Excel/PDF/CSV (→ text + scope clauses), preview documents inline; attach code repos (git URL / local) and work-item trackers (Jira/GitLab/Redmine/Azure DevOps/Linear/GLPI/file).
+- **Document management** — upload Word/Excel/PDF/CSV (→ text + scope clauses), preview documents inline; attach code repos (git URL / local) and work-item trackers (Jira/GitLab/Redmine/Azure DevOps/Linear/file).
 - **Reports** — KPI/scorecard on the project summary (over-reliance rate, agreement, effort pool with per-item consumption breakdown, precedent & disputed-clause counters); every KPI tile links to the list that answers "which ones?", and a client-ready `.docx` report per case.
 - **Decision memory ("decision memory as code")** — every triage decision is auto-projected to a per-project, git-versionable **markdown wiki** (`decisions/`, entity backlinks, generated index). Human overrides are promoted to **precedents**, conflicting rulings on the same clause surface in a **disputed** page, and a `GraphQueryPort` retrieves over scope clauses + code modules + past work items (top-k / graph expand / guarded NL query). The wiki is always a **projection of the database** — regenerable with one command, never a second source of truth.
 - **Multilingual UI (TR/EN/DE)** — switch language from the top-right; menus/labels and LLM output follow the chosen language.
@@ -146,7 +146,7 @@ docker compose up -d --build                    # app + Postgres (ast engine →
 
 ## Architecture (the load-bearing decisions)
 
-- **Hexagonal (ports & adapters)** — the core is vendor-agnostic. Three abstract ports: `WorkItemProvider`, `CodeRepositoryProvider`, `DocumentSourceProvider`. Adding a new system = writing a new adapter (GLPI/Jira/GitHub/FileSystem/SharePoint…). **Which adapter is active is configuration, not code.**
+- **Hexagonal (ports & adapters)** — the core is vendor-agnostic. Three abstract ports: `WorkItemProvider`, `CodeRepositoryProvider`, `DocumentSourceProvider`. Adding a new system = writing a new adapter (Jira/GitLab/GitHub/FileSystem/SharePoint…). **Which adapter is active is configuration, not code.**
 - **Two cadences** — *Indexing* is offline/periodic (code → graph, contract → baseline); *Triage* is online and answers in seconds by querying the pre-built index.
 - **EXCLUDED scope is first-class** — `ScopeItem.polarity = INCLUDED | EXCLUDED`. A match against an excluded clause is the highest-confidence "out-of-scope".
 - **Two-evidence rule** — a decision rests on both (a) text similarity (request ↔ contract) and (b) code reality; conflict → gray area → escalate to PMO.
@@ -156,7 +156,7 @@ docker compose up -d --build                    # app + Postgres (ast engine →
 flowchart LR
     subgraph vendors ["Adapters — selected by config, never code"]
         direction TB
-        A1["Jira / GLPI / file export"]
+        A1["Jira / GitLab / file export"]
         A2["Joern CPG / Python AST / git churn"]
         A3["Filesystem / docx·xlsx·pdf upload"]
         A4["Claude API / Ollama / vLLM"]
@@ -182,7 +182,7 @@ The LLM is abstracted behind a single `LLMClient` port with two providers: the *
 ```
 etki/
   core/        domain models (Pydantic) + ports (Protocol) — vendor-agnostic
-  adapters/    registry (config→adapter) + fakes + filesystem/jira/glpi/joern/ast/git/llm…
+  adapters/    registry (config→adapter) + fakes + filesystem/jira/gitlab/joern/ast/git/llm…
   extraction/  scope_extractor (contract → ScopeItem[]) + parsers (docx/xlsx/pdf → text)
   indexing/    IndexingEngine + scope↔code mapping + save/load
   engine/      triage (decision tree) + understanding + estimation (PERT)
