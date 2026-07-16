@@ -211,12 +211,27 @@ Three channels, gated by the operator-side `ETKI_PLUGIN_POLICY`
   which is what installs and gets pinned in the operator's `etki-plugins.lock`.
 - **Wheel** — `install ./etki_plugin_acme-1.0.0-py3-none-any.whl --sha256 <hash>`
   (needs `allow_local`; the hash is verified before anything runs).
-- **Verified marketplace** — an entry in the signed `etki-plugins` index makes
-  your plugin installable under the DEFAULT policy (`verified_only`). Listing
-  requires a green conformance report — its `version`/`api_compat`/
-  `etki_api_version` fields feed the index's compatibility matrix. The public
-  index repo is still being bootstrapped; open an issue to get listed once it
-  lands — until then, ship via git tags or wheels.
+- **Verified marketplace** — an entry in the signed index at
+  [`https://yasinyaman.github.io/etki-plugins/index.json`](https://yasinyaman.github.io/etki-plugins/index.json)
+  makes your plugin installable under the DEFAULT policy (`verified_only`).
+  Getting listed is a PR against
+  [yasinyaman/etki-plugins](https://github.com/yasinyaman/etki-plugins)
+  carrying three things (full criteria:
+  [PROCESS.md](https://github.com/yasinyaman/etki-plugins/blob/master/PROCESS.md)):
+
+  1. your wheel under `artifacts/` — build it (`uv build`), note its hash
+     (`shasum -a 256 dist/*.whl`);
+  2. a green conformance report under `reports/` —
+     `python -m etki_api.conformance etki-plugin-acme --report report.json`
+     (`failed: 0`; its `version`/`api_compat`/`etki_api_version` fields feed
+     the index's compatibility matrix);
+  3. your `index.json` entry: name/summary/source repo/ports, an honest
+     capability declaration, and per-version `api_compat` +
+     `artifact.sha256` + `conformance_report` + `released_at`.
+
+  On merge, CI re-validates the schema and every hash, re-signs the index
+  (sigstore keyless, identity pinned to that repo's release workflow) and
+  republishes the Pages site — no further action on your side.
 
 In every channel the install confirmation prompt shows your `etki-plugin.toml`
 capability declaration (network / filesystem / endpoints) to the operator
