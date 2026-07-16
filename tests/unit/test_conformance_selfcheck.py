@@ -6,6 +6,7 @@ contract here starts failing, either the fake or the written contract drifted.""
 import pytest
 from etki.adapters.fakes.code_repo import FakeCodeRepositoryProvider
 from etki.adapters.fakes.document import FakeDocumentSourceProvider
+from etki.adapters.fakes.intake import FakeRequestIntakeProvider, FakeResponseChannel
 from etki.adapters.fakes.work_item import FakeWorkItemProvider
 
 from etki_api.conformance import (
@@ -14,7 +15,9 @@ from etki_api.conformance import (
     EmbeddingProviderContract,
     LLMClientContract,
     RegistryMetadataProviderContract,
+    RequestIntakeProviderContract,
     RerankProviderContract,
+    ResponseChannelContract,
     WorkItemProviderContract,
 )
 from etki_api.models import PackageMetadata
@@ -49,6 +52,19 @@ class TestFakeDocumentsConformance(DocumentSourceProviderContract):
     @pytest.fixture
     def provider(self):
         return FakeDocumentSourceProvider()
+
+
+class TestFakeIntakeConformance(RequestIntakeProviderContract):
+    @pytest.fixture
+    def provider(self):
+        return FakeRequestIntakeProvider()
+
+
+class TestFakeResponseChannelConformance(ResponseChannelContract):
+    # The fake accepts any non-YOK-999 id → keep the default known/unknown ids.
+    @pytest.fixture
+    def provider(self):
+        return FakeResponseChannel()
 
 
 class TestLinearPluginConformance(WorkItemProviderContract):

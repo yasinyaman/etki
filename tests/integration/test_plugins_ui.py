@@ -53,7 +53,8 @@ def test_toggle_roundtrip_disable_then_enable(client: TestClient, plugins_sandbo
     assert response.status_code == 303
     states = {s.name: s.state for s in get_plugin_registry().statuses()}
     assert states["etki-plugin-linear"] == "disabled"
-    assert get_plugin_registry().stamp() == []  # disabled plugin leaves the audit stamp
+    # A disabled plugin leaves the audit stamp (other installed plugins remain).
+    assert "etki-plugin-linear@0.1.0" not in get_plugin_registry().stamp()
 
     client.post(
         "/ayarlar/eklentiler/etki-plugin-linear/durum",

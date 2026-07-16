@@ -140,6 +140,36 @@ def set_work_items(project_id: str, adapter: str, options: dict) -> ProjectConfi
     return project
 
 
+def set_intake(
+    project_id: str, adapter: str, options: dict, mode: str
+) -> ProjectConfig:
+    """Sets the request-intake + response-channel connectors together (one UI
+    card configures both) plus the write-back timing mode.
+
+    Both connectors get the SAME adapter+options (explicit duplication in
+    projects.yaml — visible and greppable; secrets are `env:VAR` refs so nothing
+    sensitive is copied). If the registry cannot resolve a response_channel for
+    the adapter (a pull-only plugin), the channel is written as "none" so the
+    project never carries a permanently-degraded responder."""
+    from etki.adapters.registry import options_model_for
+
+    project = _require(project_id)
+    if mode not in ("on_decision", "on_triage", "both"):
+        raise ValueError(f"Geçersiz yanıt modu: {mode!r}")
+    project.connectors.request_intake = ConnectorConfig(adapter=adapter, options=options)
+    can_respond = (
+        adapter in ("none", "fake")
+        or options_model_for("response_channel", adapter) is not None
+    )
+    if adapter == "none" or not can_respond:
+        project.connectors.response_channel = ConnectorConfig(adapter="none")
+    else:
+        project.connectors.response_channel = ConnectorConfig(adapter=adapter, options=options)
+    project.intake_response_mode = mode  # type: ignore[assignment]
+    _upsert(project)
+    return project
+
+
 def set_llm_profile(
     project_id: str,
     *,

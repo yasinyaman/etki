@@ -29,7 +29,7 @@ def test_plugin_registry_discovered_linear():
     assert registry.find("work_items", "linear") is not None
     statuses = {s.name: s for s in registry.statuses()}
     assert statuses["etki-plugin-linear"].state == "active"
-    assert registry.stamp() and registry.stamp()[0].startswith("etki-plugin-linear@")
+    assert any(s.startswith("etki-plugin-linear@") for s in registry.stamp())
 
 
 def test_unknown_adapter_error_lists_plugin_names():

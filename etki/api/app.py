@@ -100,6 +100,19 @@ async def _pool_refresh_loop(interval_minutes: float) -> None:
             logger.exception("efor havuzu tazeleme başarısız; bir sonraki tur beklenecek")
 
 
+async def _intake_loop(interval_minutes: float) -> None:
+    from etki.intake.service import run_intake_cycle
+
+    while True:
+        await asyncio.sleep(interval_minutes * 60)
+        try:
+            ctx = await run_in_threadpool(get_context)
+            created = await run_intake_cycle(ctx, Settings())
+            logger.info("talep alma turu tamam (%s yeni vaka)", created)
+        except Exception:
+            logger.exception("talep alma turu başarısız; bir sonraki tur beklenecek")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
     settings = Settings()
@@ -120,6 +133,9 @@ async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
     if settings.pool_refresh_minutes > 0:
         background.append(asyncio.create_task(_pool_refresh_loop(settings.pool_refresh_minutes)))
         logger.info("efor havuzu tazeleme açık: her %s dk", settings.pool_refresh_minutes)
+    if settings.intake_poll_minutes > 0:
+        background.append(asyncio.create_task(_intake_loop(settings.intake_poll_minutes)))
+        logger.info("talep alma açık: her %s dk", settings.intake_poll_minutes)
     yield
     for task in background:
         task.cancel()

@@ -46,10 +46,10 @@ jobs:
         run: uv run ruff check .
 
       - name: Type check (mypy)
-        run: uv run mypy etki packages/etki-api/src/etki_api packages/etki-plugin-linear/src/etki_plugin_linear
+        run: uv run mypy etki packages/etki-api/src/etki_api packages/etki-plugin-linear/src/etki_plugin_linear packages/etki-plugin-jira/src/etki_plugin_jira
 
       - name: Tests (pytest + coverage)
-        run: uv run pytest --cov=etki --cov=etki_api --cov=etki_plugin_linear --cov-report=term-missing --cov-fail-under=70
+        run: uv run pytest --cov=etki --cov=etki_api --cov=etki_plugin_linear --cov=etki_plugin_jira --cov-report=term-missing --cov-fail-under=70
 
       - name: Build workspace packages (etki-api gate)
         run: uv build --all-packages
@@ -57,10 +57,16 @@ jobs:
       - name: Gate / back-test (eval)
         run: uv run python -m eval.runner
 
-  # The first-party plugin goes through the SAME reusable workflow a third-party
+  # The first-party plugins go through the SAME reusable workflow a third-party
   # plugin would use — proves the published path end-to-end on every push.
   plugin-conformance:
     uses: ./.github/workflows/plugin-conformance.yml
     with:
       plugin-dist: etki-plugin-linear
       package-path: packages/etki-plugin-linear
+
+  plugin-conformance-jira:
+    uses: ./.github/workflows/plugin-conformance.yml
+    with:
+      plugin-dist: etki-plugin-jira
+      package-path: packages/etki-plugin-jira

@@ -33,7 +33,9 @@ from etki_api.conformance.documents import DocumentSourceProviderContract
 from etki_api.conformance.embedding import EmbeddingProviderContract
 from etki_api.conformance.llm import LLMClientContract
 from etki_api.conformance.registry_metadata import RegistryMetadataProviderContract
+from etki_api.conformance.request_intake import RequestIntakeProviderContract
 from etki_api.conformance.rerank import RerankProviderContract
+from etki_api.conformance.response_channel import ResponseChannelContract
 from etki_api.conformance.work_items import WorkItemProviderContract
 
 # PortName → contract class (the runner binds spec.conformance() instances here).
@@ -45,6 +47,8 @@ CONTRACTS: dict[str, type] = {
     "embedding": EmbeddingProviderContract,
     "rerank": RerankProviderContract,
     "registry_metadata": RegistryMetadataProviderContract,
+    "request_intake": RequestIntakeProviderContract,
+    "response_channel": ResponseChannelContract,
 }
 
 __all__ = [
@@ -54,6 +58,8 @@ __all__ = [
     "EmbeddingProviderContract",
     "LLMClientContract",
     "RegistryMetadataProviderContract",
+    "RequestIntakeProviderContract",
     "RerankProviderContract",
+    "ResponseChannelContract",
     "WorkItemProviderContract",
 ]

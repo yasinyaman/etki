@@ -57,7 +57,29 @@ ETKI_REINDEX_INTERVAL_HOURS=24   # background full re-index of every project + c
 ETKI_POOL_REFRESH_MINUTES=15     # lightweight effort-pool recompute from the work-item
                                    # provider (no code/document re-index; engines see the
                                    # new consumed-by-category totals in place)
+ETKI_INTAKE_POLL_MINUTES=5       # poll every project's request-intake provider and triage
+                                   # new requests into PENDING cases (OFF by default)
+ETKI_INTAKE_BATCH_LIMIT=20       # max requests pulled per project per tick
+ETKI_PUBLIC_BASE_URL=https://etki.example.com  # only used to embed a case link in write-backs
 ```
+
+**Request intake / write-back.** With a `request_intake` connector configured
+(UI: *Dosyalar → Talep Kanalı*, or `connectors.request_intake` in
+`projects.yaml`), Etki polls the tracker and triages each new request into a
+PENDING case. Cron alternative to the in-app loop:
+
+```bash
+uv run python -m etki.intake        # one poll of every project (cron-friendly)
+```
+
+The decision is written back to the source per the project's `intake_response_mode`
+(`on_decision` = after the PMO decides, the default and the copilot invariant;
+`on_triage` = an interim recommendation comment; `both`). Write-back is
+best-effort: a channel failure is recorded in the case's audit chain
+(`RESPONSE_POSTED ok=false`) and degrades the adapter's health badge, but never
+blocks an approval. Dedup is a deterministic case id (`REQ-{project}-{adapter}-{key}`)
+plus a poll cursor in `.etki/intake-cursors.json` (losing it is harmless — the
+id dedup re-absorbs re-seen requests).
 
 Cron remains the recommended production path (observable, survives restarts mid-cycle);
 the in-app loops exist so a plain `docker compose up` deployment can stay fresh without

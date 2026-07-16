@@ -759,6 +759,102 @@ MESSAGES: dict[str, dict[str, str]] = {
         "en": "document source unreachable ({name}) — continuing with an empty source",
         "de": "Dokumentquelle nicht erreichbar ({name}) — es wird mit leerer Quelle fortgefahren",
     },
+    "pd.degraded_request_intake": {
+        "tr": "talep kaynağına ulaşılamıyor ({name}) — talep alma duraklatıldı",
+        "en": "request source unreachable ({name}) — intake paused",
+        "de": "Anfragequelle nicht erreichbar ({name}) — Erfassung pausiert",
+    },
+    "pd.degraded_response_channel": {
+        "tr": "yanıt kanalına ulaşılamıyor ({name}) — geri yazma başarısız",
+        "en": "response channel unreachable ({name}) — write-back failed",
+        "de": "Antwortkanal nicht erreichbar ({name}) — Rückschreiben fehlgeschlagen",
+    },
+    # --- Request intake / response ---
+    "intake.reply_triage_title": {
+        "tr": "Etki — otomatik ön değerlendirme",
+        "en": "Etki — automatic pre-assessment",
+        "de": "Etki — automatische Vorbewertung",
+    },
+    "intake.reply_decision_title": {
+        "tr": "Etki — PMO kararı",
+        "en": "Etki — PMO decision",
+        "de": "Etki — PMO-Entscheidung",
+    },
+    "intake.reply_outcome_APPROVE": {
+        "tr": "Sonuç: kapsam içinde onaylandı.",
+        "en": "Outcome: approved as in scope.",
+        "de": "Ergebnis: als im Umfang genehmigt.",
+    },
+    "intake.reply_outcome_REJECT": {
+        "tr": "Sonuç: kapsam dışı olarak reddedildi.",
+        "en": "Outcome: rejected as out of scope.",
+        "de": "Ergebnis: als außerhalb des Umfangs abgelehnt.",
+    },
+    "intake.reply_outcome_CONVERT_TO_CR": {
+        "tr": "Sonuç: değişiklik talebine (CR) dönüştürüldü.",
+        "en": "Outcome: converted to a change request (CR).",
+        "de": "Ergebnis: in einen Änderungsantrag (CR) umgewandelt.",
+    },
+    "intake.reply_outcome_PENDING": {
+        "tr": "Sonuç: PMO incelemesi bekliyor.",
+        "en": "Outcome: pending PMO review.",
+        "de": "Ergebnis: ausstehende PMO-Prüfung.",
+    },
+    "intake.reply_effort": {
+        "tr": "tahmini efor {low}–{high} {unit}",
+        "en": "estimated effort {low}–{high} {unit}",
+        "de": "geschätzter Aufwand {low}–{high} {unit}",
+    },
+    "intake.reply_clauses": {
+        "tr": "ilgili maddeler: {clauses}",
+        "en": "related clauses: {clauses}",
+        "de": "zugehörige Klauseln: {clauses}",
+    },
+    "intake.reply_disclaimer": {
+        "tr": "Bu otomatik bir değerlendirmedir; nihai karar PMO onayındadır.",
+        "en": "This is an automated assessment; the final decision rests with PMO approval.",
+        "de": "Dies ist eine automatische Bewertung; die endgültige Entscheidung liegt bei der PMO-Freigabe.",
+    },
+    "intake.reply_case_link": {
+        "tr": "Vaka detayı: {url}",
+        "en": "Case detail: {url}",
+        "de": "Falldetail: {url}",
+    },
+    "intake.mode_on_decision": {
+        "tr": "PMO kararından sonra (varsayılan)",
+        "en": "After the PMO decision (default)",
+        "de": "Nach der PMO-Entscheidung (Standard)",
+    },
+    "intake.mode_on_triage": {
+        "tr": "Triyaj anında (öneri yorumu)",
+        "en": "At triage time (recommendation comment)",
+        "de": "Zum Triage-Zeitpunkt (Empfehlungskommentar)",
+    },
+    "intake.mode_both": {
+        "tr": "Her ikisi (öneri + nihai karar)",
+        "en": "Both (recommendation + final decision)",
+        "de": "Beide (Empfehlung + Endentscheidung)",
+    },
+    "pf.intake_title": {
+        "tr": "Talep Kanalı", "en": "Request Channel", "de": "Anfragekanal",
+    },
+    "pf.intake_desc": {
+        "tr": "Jira gibi bir kaynaktan talepleri otomatik çekip triyajlar; kararı geri yazar. "
+        "Kimlik bilgileri <code>env:VAR</code> ile verilmelidir.",
+        "en": "Automatically pulls requests from a source like Jira, triages them, and writes the "
+        "decision back. Credentials must be given as <code>env:VAR</code> references.",
+        "de": "Zieht Anfragen automatisch aus einer Quelle wie Jira, triagiert sie und schreibt die "
+        "Entscheidung zurück. Zugangsdaten müssen als <code>env:VAR</code> angegeben werden.",
+    },
+    "pf.intake_adapter": {
+        "tr": "Kaynak adaptörü", "en": "Source adapter", "de": "Quelladapter",
+    },
+    "pf.intake_mode": {
+        "tr": "Geri yazma zamanı", "en": "Write-back timing", "de": "Rückschreib-Zeitpunkt",
+    },
+    "plugins.market_caps_external_write": {
+        "tr": "dış sisteme yazma", "en": "external write", "de": "externes Schreiben",
+    },
     "pd.files_settings": {
         "tr": "Dosyalar & Ayarlar", "en": "Files & Settings", "de": "Dateien & Einstellungen",
     },

@@ -93,3 +93,48 @@ class PackageMetadata(BaseModel):
     latest_version: str | None = None
     released_at: str | None = None  # ISO date string when the registry provides it
     homepage: str | None = None
+
+
+# --- Request intake / response --------------------------------------------
+
+
+class IncomingRequest(BaseModel):
+    """A new client request pulled from an external tracker (Jira issue,
+    GitLab issue...), normalized. ``external_id`` is the immutable vendor id
+    used for write-back and host-side dedup; ``key`` is the human-facing
+    reference ("PROJ-123") and may equal ``external_id``."""
+
+    external_id: str
+    key: str = ""
+    title: str = ""
+    description: str = ""
+    reporter: str | None = None
+    url: str | None = None
+    created_at: datetime | None = None
+    labels: list[str] = Field(default_factory=list)
+
+
+class IntakeBatch(BaseModel):
+    """One poll result from a ``RequestIntakeProvider``. ``cursor`` is OPAQUE
+    to the host — it is stored verbatim and passed back on the next poll (the
+    adapter alone knows whether it's a timestamp, an issue key, or a page
+    token)."""
+
+    items: list[IncomingRequest] = Field(default_factory=list)
+    cursor: str | None = None
+
+
+class OutboundResponse(BaseModel):
+    """A host-composed write-back for a ``ResponseChannel``. ``text`` is the
+    FINAL, already-localized plain text — the host composes it (decision,
+    effort range, clause refs, in the project language) and the adapter only
+    transports it. ``extras`` carries structured fields so a richer renderer
+    never needs a contract change; ``kind`` distinguishes an interim triage
+    recommendation from the final PMO outcome."""
+
+    external_id: str
+    text: str
+    kind: str = "decision"  # "triage" (recommendation) | "decision" (final PMO outcome)
+    case_id: str = ""
+    case_url: str | None = None
+    extras: dict[str, str] = Field(default_factory=dict)

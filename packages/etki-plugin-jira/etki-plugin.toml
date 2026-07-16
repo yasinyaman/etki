@@ -1,0 +1,25 @@
+# Static twin of etki_plugin_jira.PLUGIN — readable without executing plugin
+# code (install prompt + marketplace index read this). `etki plugin verify`
+# cross-checks it against the PluginSpec and fails on drift.
+
+[plugin]
+name = "etki-plugin-jira"
+type = "adapter"
+api_compat = ">=0.1.2,<0.2"
+
+[plugin.capabilities]
+network = true
+filesystem = "none"
+external_write = true
+endpoints = ["<site>.atlassian.net (configured base_url)"]
+notes = "REST v3: request pull (JQL search, read) + comment write-back. The ONLY write is posting decision summaries as issue comments."
+
+[[plugin.adapters]]
+port = "request_intake"
+name = "jira"
+options_model = "etki_plugin_jira:JiraOptions"
+
+[[plugin.adapters]]
+port = "response_channel"
+name = "jira"
+options_model = "etki_plugin_jira:JiraOptions"

@@ -102,7 +102,7 @@ def run(dist_name: str, report_path: str | None = None) -> int:
     _INSTANCES.update(dict(spec.conformance().items()))
     unknown = set(_INSTANCES) - {
         "work_items", "code_repo", "documents", "llm", "embedding", "rerank",
-        "registry_metadata",
+        "registry_metadata", "request_intake", "response_channel",
     }
     if unknown:
         print(f"conformance: bilinmeyen port(lar): {sorted(unknown)}")

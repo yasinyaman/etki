@@ -13,6 +13,7 @@ resolution-markers = [
 members = [
     "etki",
     "etki-api",
+    "etki-plugin-jira",
     "etki-plugin-linear",
 ]
 constraints = [{ name = "betterproto", specifier = "==2.0.0b7" }]
@@ -517,6 +518,7 @@ plugins = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "etki-plugin-jira" },
     { name = "etki-plugin-linear" },
     { name = "httpx" },
     { name = "mypy" },
@@ -559,6 +561,7 @@ provides-extras = ["graphify", "plugins"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "etki-plugin-jira", editable = "packages/etki-plugin-jira" },
     { name = "etki-plugin-linear", editable = "packages/etki-plugin-linear" },
     { name = "httpx", specifier = ">=0.27" },
     { name = "mypy", specifier = ">=1.11" },
@@ -572,7 +575,7 @@ docs = [{ name = "mkdocs-material", specifier = ">=9.5" }]
 
 [[package]]
 name = "etki-api"
-version = "0.1.1"
+version = "0.1.2"
 source = { editable = "packages/etki-api" }
 dependencies = [
     { name = "pydantic" },
@@ -591,6 +594,21 @@ requires-dist = [
     { name = "pytest-asyncio", marker = "extra == 'conformance'", specifier = ">=0.23" },
 ]
 provides-extras = ["conformance"]
+
+[[package]]
+name = "etki-plugin-jira"
+version = "0.1.0"
+source = { editable = "packages/etki-plugin-jira" }
+dependencies = [
+    { name = "etki-api" },
+    { name = "httpx" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "etki-api", editable = "packages/etki-api" },
+    { name = "httpx", specifier = ">=0.27" },
+]
 
 [[package]]
 name = "etki-plugin-linear"

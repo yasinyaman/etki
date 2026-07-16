@@ -1,0 +1,24 @@
+[project]
+name = "etki-plugin-jira"
+version = "0.1.0"
+description = "Jira request-intake + response-channel plugin for Etki (poll new issues, write the decision back as a comment)."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.12"
+dependencies = [
+    "etki-api>=0.1.2,<0.2",
+    "httpx>=0.27",
+]
+
+[project.entry-points."etki.adapters"]
+jira = "etki_plugin_jira:PLUGIN"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/etki_plugin_jira"]
+
+[tool.uv.sources]
+etki-api = { workspace = true }

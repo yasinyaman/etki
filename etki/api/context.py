@@ -21,7 +21,9 @@ from etki.adapters.registry import (
     build_documents,
     build_embedder,
     build_llm_client,
+    build_request_intake,
     build_reranker,
+    build_response_channel,
     build_wiki_store,
     build_work_items,
 )
@@ -36,6 +38,8 @@ from etki.extraction.scope_extractor import build_scope_extractor
 from etki.hitl.ingest import WikiIngest, precedents_by_clause
 from etki.hitl.service import ApprovalService
 from etki.indexing.engine import IndexingEngine, load_index, save_index
+from etki.intake.respond import DecisionResponder, ResponderBinding
+from etki.intake.service import IntakeBinding
 from etki.llm_profile import build_system_preamble
 from etki.persistence.db import build_repository
 from etki.process_log import log_event
@@ -87,6 +91,12 @@ class AppContext:
     precedents: dict[str, dict[str, dict]] = field(default_factory=dict)
     # Per-project adapter health (see AdapterHealth) — the UI's degradation badges.
     adapter_health: dict[str, list[AdapterHealth]] = field(default_factory=dict)
+    # Per-project request-intake bindings (poll loop reads these). Empty = no
+    # project polls a tracker.
+    intake: dict[str, IntakeBinding] = field(default_factory=dict)
+    # Decision/triage write-back host. Its `bindings` dict is filled here; the
+    # singleton ApprovalService holds a reference to `on_decision`.
+    responder: DecisionResponder | None = None
 
     def degraded_adapters(self, project_id: str) -> list[AdapterHealth]:
         return [h for h in self.adapter_health.get(project_id, []) if h.state == "degraded"]
@@ -274,11 +284,19 @@ def _load_or_build_index(
 
 
 def _build_approval(
-    repo: CaseFileRepository, wiki: WikiStore | None
+    repo: CaseFileRepository,
+    wiki: WikiStore | None,
+    responder: DecisionResponder | None = None,
 ) -> ApprovalService:
-    """Approval + wiki projection + HITL ingest (both absent when the wiki is off)."""
+    """Approval + wiki projection + HITL ingest (both absent when the wiki is off)
+    + the intake write-back hook (no-ops when no project has a response channel)."""
     ingest = WikiIngest(repo, wiki) if wiki is not None else None
-    return ApprovalService(repo, wiki=wiki, ingest=ingest)
+    return ApprovalService(
+        repo,
+        wiki=wiki,
+        ingest=ingest,
+        on_decided=responder.on_decision if responder is not None else None,
+    )
 
 
 @lru_cache
@@ -295,9 +313,23 @@ def get_context() -> AppContext:
     precedents_map: dict[str, dict[str, dict]] = {}
     work_item_providers: dict[str, object] = {}
     health_map: dict[str, list[AdapterHealth]] = {}
+    intake_map: dict[str, IntakeBinding] = {}
     indexes: dict[str, Index] = {}
     index_paths: dict[str, str] = {}
     meta: list[dict[str, str]] = []
+
+    def _degrade(pid: str, port: str, msg: str) -> None:
+        for h in health_map.get(pid, []):
+            if h.port == port:
+                h.state = "degraded"
+                h.error = msg
+                return
+
+    responder = DecisionResponder(
+        repo, public_base_url=settings.public_base_url, on_error=lambda pid, msg: _degrade(
+            pid, "response_channel", msg
+        )
+    )
     llm = build_llm_client(settings)  # semantic assist on weak matches (if configured)
     embedder = build_embedder(settings)  # deterministic semantic matching (if configured)
     reranker = build_reranker(settings)  # cross-encoder evidence layer (if configured)
@@ -384,6 +416,49 @@ def get_context() -> AppContext:
                     "documents", doc_adapter, "degraded", f"{type(exc).__name__}: {exc}"
                 )
             )
+        # Request intake + response channel (both OFF unless configured). Same
+        # adapter-isolation pattern: a broken build degrades the badge and the
+        # project keeps serving; a healthy "none" adapter records no badge.
+        intake_adapter = project.connectors.request_intake.adapter
+        if intake_adapter not in ("", "none"):
+            try:
+                intake_provider = build_request_intake(project.connectors.request_intake)
+                if intake_provider is not None:
+                    intake_map[project.id] = IntakeBinding(
+                        adapter=intake_adapter,
+                        provider=intake_provider,
+                        mode=project.intake_response_mode,
+                        language=project.language,
+                    )
+                    health.append(AdapterHealth("request_intake", intake_adapter))
+            except Exception as exc:
+                logger.exception("[%s] talep alma adaptörü kurulamadı", project.id)
+                health.append(
+                    AdapterHealth(
+                        "request_intake", intake_adapter, "degraded",
+                        f"{type(exc).__name__}: {exc}",
+                    )
+                )
+        channel_adapter = project.connectors.response_channel.adapter
+        if channel_adapter not in ("", "none"):
+            try:
+                channel = build_response_channel(project.connectors.response_channel)
+                if channel is not None:
+                    responder.bindings[project.id] = ResponderBinding(
+                        adapter=channel_adapter,
+                        channel=channel,
+                        mode=project.intake_response_mode,
+                        language=project.language,
+                    )
+                    health.append(AdapterHealth("response_channel", channel_adapter))
+            except Exception as exc:
+                logger.exception("[%s] yanıt kanalı adaptörü kurulamadı", project.id)
+                health.append(
+                    AdapterHealth(
+                        "response_channel", channel_adapter, "degraded",
+                        f"{type(exc).__name__}: {exc}",
+                    )
+                )
         engines[project.id] = TriageEngine(
             work_items,
             StaticCodeRepository(index.modules),
@@ -425,7 +500,7 @@ def get_context() -> AppContext:
         consumed=consumed_map,
         projects=meta,
         repo=repo,
-        approval=_build_approval(repo, wiki_store),
+        approval=_build_approval(repo, wiki_store, responder),
         default_project=projects[0].id,
         user_store=build_user_store(settings.db_url),
         indexes=indexes,
@@ -434,4 +509,6 @@ def get_context() -> AppContext:
         wiki=wiki_store,
         precedents=precedents_map,
         adapter_health=health_map,
+        intake=intake_map,
+        responder=responder,
     )

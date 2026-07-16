@@ -74,7 +74,7 @@ async def test_triage_end_to_end_via_plugin_with_audit_stamp(monkeypatch):
     (event,) = repo.list_audit("REQ-PLUGIN-1")
     assert event.action == "TRIAGED"
     audited = event.detail["decisions"][0]["plugin_set"]
-    assert audited and audited[0].startswith("etki-plugin-linear@")
+    assert any(s.startswith("etki-plugin-linear@") for s in audited)
 
 
 @pytest.fixture
