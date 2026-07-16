@@ -10,6 +10,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Nothing yet.
 
+## [0.1.0a3] - 2026-07-16
+
+### Added
+
+- **Plugin runtime (Faz 2)** — entry-point discovery over the `etki.adapters`
+  group (`PluginRegistry`: broken/incompatible plugins are isolated with loud
+  logs, never crash startup; builtin adapter names always win). `adapter: linear`
+  now resolves through the installed `etki-plugin-linear` plugin — the builtin
+  file was removed, config is unchanged. `TriageDecision.plugin_set` stamps the
+  active plugin set into every decision's audit trail. `python -m etki.plugin
+  list [--json]` feeds the KVKK inventory; plugins can register MCP tools via
+  the `etki.mcp_tools` group.
+- **Plugin distribution (Faz 3)** — `python -m etki.plugin install|sync|remove`
+  with a byte-stable `etki-plugins.lock` (TOML). `ETKI_PLUGIN_POLICY` ordered
+  levels `verified_only` (default, fail-closed) < `allow_git` < `allow_local`;
+  git tags resolve to full commit SHAs (the SHA installs and locks), wheel
+  SHA-256 is verified before any subprocess, and under `verified_only` a
+  non-editable distribution without a verified lockfile entry is `blocked` at
+  registry load. Containers install plugins at image build time
+  (`Dockerfile.plugins`).
+- **Conformance suite "AdapterBench" (Faz 4)** — `etki_api.conformance`
+  (extra `etki-api[conformance]`, etki-api 0.1.1): contract tests pinning the
+  documented semantics of all seven ports + a JSON-report runner
+  (`python -m etki_api.conformance <dist> --report out.json`). Reusable GitHub
+  workflow `plugin-conformance.yml`; the linear plugin runs through it on every
+  push.
+- **Verified marketplace (Faz 5)** — signed plugin index (sigstore keyless
+  verification behind the `etki[plugins]` extra; air-gapped mirrors are
+  hash-mandatory), `search`/`install <name> --index <url|dir>`/`mirror` CLI,
+  and the **Ayarlar → Eklentiler** screen (statuses, verified badge, read-only
+  policy; the only UI-writable action is enable/disable).
+- **Plugin UI round (U1–U4)** — the work-items adapter dropdown is registry-fed
+  (installed plugins appear with zero template edits); `AdapterHealth`
+  degradation badges on Özet/Dosyalar/Raporlar; `plugin_set` provenance on case
+  screens; typed option models for the builtin work-item adapters with a
+  schema-rendered options form (`env:` references are never resolved for
+  display).
+
+### Security
+
+- Fixes from the 2026-07 security audit: markdown rendering hardened against
+  stored XSS, zip-bomb cap on document uploads, `Secure` session cookie +
+  security headers, case-chat cross-project access closed, plugin-installer git
+  URL validation, SSRF guard for LLM endpoints (`net_guard`), atomic 0600
+  writes for `.etki/llm.json`, upload size caps.
+
+### Removed
+
+- **GLPI adapter** (adapter, options model, registry branch, tests, docs) —
+  work-item trackers are now file/Jira/GitLab/Redmine/Azure DevOps/Linear
+  (plugin).
+
+### Fixed
+
+- `plugin-conformance` CI job: `uv venv --clear` — setup-uv pre-creates the
+  venv and recent uv errors instead of silently replacing it.
+
 ## [0.1.0a2] - 2026-07-15
 
 ### Added

@@ -4,13 +4,7 @@ All notable changes to the plugin API. Semver: major = breaking, minor = new
 optional method/field, patch = fixes. `0.x` until the first external plugin
 ships — breaking changes are allowed but MUST be announced here.
 
-## [Unreleased]
-
-### Changed
-- Docstring vendor examples no longer reference GLPI (the builtin GLPI adapter
-  was removed from the etki app). No API or contract change.
-
-## [0.1.1] - 2026-07-15
+## [0.1.1] - 2026-07-16
 
 ### Added
 - **Conformance suite** (`etki_api.conformance`, extra `etki-api[conformance]`):
@@ -20,6 +14,10 @@ ships — breaking changes are allowed but MUST be announced here.
   plugin's `PluginSpec.conformance()` offline providers and emits a JSON report
   with version-compat matrix fields. Port contracts themselves are UNCHANGED —
   additive within the 0.1 range (`>=0.1,<0.2` pins keep working).
+
+### Changed
+- Docstring vendor examples no longer reference GLPI (the builtin GLPI adapter
+  was removed from the etki app). No API or contract change.
 
 ## [0.1.0] - 2026-07-15
 
