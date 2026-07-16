@@ -177,12 +177,18 @@ group `etki.adapters`). Operational rules:
   capabilities per plugin. `python -m etki.plugin sync` reproduces the exact
   state on a new machine (local wheels re-hash-verified); `remove <dist>`
   uninstalls + drops the entry; `list [--json]` is the KVKK inventory feed.
-- **Verified marketplace** (signed index): under the default `verified_only`
+- **Verified marketplace** (signed index): the official index lives at
+  **`https://yasinyaman.github.io/etki-plugins/index.json`** (source repo
+  [yasinyaman/etki-plugins](https://github.com/yasinyaman/etki-plugins);
+  acceptance process in its `PROCESS.md`). Under the default `verified_only`
   policy the ONLY install path is an index-verified one:
   ```bash
-  uv run python -m etki.plugin search acme --index https://…/index.json
-  uv run python -m etki.plugin install etki-plugin-acme --index https://…/index.json
+  uv run python -m etki.plugin search acme --index https://yasinyaman.github.io/etki-plugins/index.json
+  uv run python -m etki.plugin install etki-plugin-acme --index https://yasinyaman.github.io/etki-plugins/index.json
   ```
+  A weekly scheduled workflow (`marketplace-live-verify.yml`) mirrors the live
+  index with REAL signature verification and does a verified install — the
+  end-to-end canary for the whole chain.
   A REMOTE index requires a valid **sigstore** signature (keyless, GitHub OIDC;
   the verification tooling ships behind the optional extra `etki[plugins]` — the
   base/air-gapped install never pulls it). The signer identity is pinned to the

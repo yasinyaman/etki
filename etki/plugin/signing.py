@@ -16,8 +16,12 @@ from typing import Protocol
 
 # Identity pin: the ONLY workflow allowed to sign the index. Overridable for
 # forks/self-hosted marketplaces via env — still env-only, like the policy.
+# EXACT match (sigstore policy.Identity does no prefix matching): the index is
+# signed on push to master, so the ref is stable — a tag-based identity would
+# change per release and could never be pinned exactly.
 DEFAULT_IDENTITY = (
-    "https://github.com/yasinyaman/etki-plugins/.github/workflows/release.yml@refs/tags/"
+    "https://github.com/yasinyaman/etki-plugins/.github/workflows/release.yml"
+    "@refs/heads/master"
 )
 DEFAULT_ISSUER = "https://token.actions.githubusercontent.com"
 ENV_IDENTITY = "ETKI_PLUGIN_INDEX_IDENTITY"

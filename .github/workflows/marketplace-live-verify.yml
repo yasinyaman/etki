@@ -1,0 +1,38 @@
+# Live end-to-end check of the verified marketplace: real sigstore signature
+# verification against the PUBLISHED index (the unit tests exercise our
+# plumbing through the `_verifier` seam — the actual cryptography only runs
+# here), then a verified install from the mirrored copy.
+#
+# Scheduled + manual only: it depends on the external etki-plugins repo's
+# Pages deployment, not on this repo's code, so it never gates pushes.
+name: Marketplace live verify
+
+on:
+  schedule:
+    - cron: "17 5 * * 1" # weekly, Monday 05:17 UTC
+  workflow_dispatch:
+
+env:
+  ETKI_PLUGIN_INDEX_URL: https://yasinyaman.github.io/etki-plugins/index.json
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --frozen --dev --extra plugins
+
+      # Signature verified here (mirror = the online side of the air-gapped
+      # flow) + every artifact hash-checked against the signed index.
+      - name: Mirror with live signature verification
+        run: uv run python -m etki.plugin mirror "$ETKI_PLUGIN_INDEX_URL" /tmp/etki-mirror
+
+      - name: Verified install from the mirror
+        run: |
+          uv run python -m etki.plugin install etki-plugin-linear --index /tmp/etki-mirror --yes
+          uv run python -c "import etki_plugin_linear; print('kuruldu:', etki_plugin_linear.PLUGIN.name)"
+          grep -A1 'name = "etki-plugin-linear"' etki-plugins.lock | grep 'source = "verified"'
