@@ -63,7 +63,14 @@ def main(argv: list[str] | None = None) -> int:
         return _create_user(argv[1:])
     settings = Settings()
     init_schema(make_engine(settings.db_url))
-    print(f"Şema oluşturuldu → {settings.db_url}")
+    # Redact any embedded credential before printing (live db_url is postgresql://user:PW@host).
+    try:
+        from sqlalchemy.engine import make_url
+
+        shown = make_url(settings.db_url).render_as_string(hide_password=True)
+    except Exception:  # noqa: BLE001 — never let a display helper break schema creation
+        shown = settings.db_url
+    print(f"Şema oluşturuldu → {shown}")
     return 0
 
 

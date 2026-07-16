@@ -1,0 +1,28 @@
+{# Options fragment for the selected work-item adapter (plugin UI plan U4).
+   Typed fields come from the adapter's options_model JSON schema (builtin table
+   or the plugin's declared model); no model — or ?mode=raw — falls back to the
+   free-form "key: value" textarea. Secret values stay env:VAR references. #}
+{% if wi_fields is not none %}
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+  {% for f in wi_fields %}
+  <div>
+    <label style="display:block; font-size:12.5px; font-weight:600; color:#33424A; margin-bottom:4px;">
+      <span class="mono">{{ f.name }}</span>{% if f.required %} <span style="color:#A83228;">*</span>{% endif %}
+    </label>
+    {% if f.input_type == 'checkbox' %}
+    <input type="checkbox" name="opt_{{ f.name }}" value="1" {{ 'checked' if f.checked else '' }}>
+    {% else %}
+    <input type="{{ f.input_type }}" name="opt_{{ f.name }}" value="{{ f.value }}"
+           {% if f.input_type == 'number' %}step="any"{% endif %} style="width:100%;">
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+<p class="meta" style="margin:8px 0 0; font-size:11.5px;">{{ t('pf.opts_secret_hint') }}
+  <a href="#" onclick="return false;"
+     hx-get="/projeler/{{ project.id }}/ayarlar/work-items/form?mode=raw"
+     hx-include="[name='adapter']" hx-target="#wi-options" hx-swap="innerHTML"
+     style="color:#9A5F23;">{{ t('pf.opts_raw_link') }}</a></p>
+{% else %}
+<textarea name="options" rows="3" placeholder="{{ t('pf.options_ph')|safe }}">{{ wi_raw }}</textarea>
+{% endif %}

@@ -199,8 +199,85 @@ options_model = "etki_plugin_acme:AcmeOptions"
 ```
 
 Once installed next to Etki, `adapter: acme` in `connectors.yaml` resolves to your
-plugin — no registry branch needed. (Runtime discovery lands in plugin Faz 2;
-until then the spec + manifest are validated by the package's own tests.)
+plugin — no registry branch needed.
+
+### Your plugin in the UI
+
+A plugin never ships its own screens — the web UI is always a projection of what
+the plugin declares:
+
+- **Ayarlar → Eklentiler** lists every installed plugin: name, version (+git
+  commit), install source (from the lockfile), `api_compat`, ports, state
+  (`active/failed/incompatible/blocked/disabled`) with the error text, and a
+  verified badge. The only mutation is a pmo-only enable/disable toggle;
+  install/remove and `ETKI_PLUGIN_POLICY` stay on the operator/CLI side.
+- **Work-item adapter dropdown** (project → Dosyalar) is fed by
+  `registry.available_adapters("work_items")`: builtins first, then the adapter
+  names of ACTIVE plugins — your `AdapterFactory.name` appears there
+  automatically once the plugin loads. Options are entered as `key: value`
+  lines and validated through your `options_model` at build time (secrets as
+  `env:VAR` references, resolved by core — your plugin only ever sees values).
+- Every triage decision is stamped with the active plugin set
+  (`TriageDecision.plugin_set`, e.g. `etki-plugin-acme@1.0.0`) for the audit
+  trail.
+
+## Port contracts & the conformance suite ("AdapterBench")
+
+The ports are `runtime_checkable Protocol`s — `isinstance` only checks that the
+methods EXIST. The **conformance suite** (`etki_api.conformance`, extra
+`etki-api[conformance]`) pins the documented SEMANTICS. These are the contracts
+it encodes (reviewed against the GLPI/Jira/Linear adapters and the fakes):
+
+| Port | Contract |
+|---|---|
+| `WorkItemProvider` | `find_similar` returns a **list** of `WorkItem` (≤ `limit`; empty or a recent-items fallback on no match — **never an exception**); Turkish/unicode text accepted; every item normalized (`id` non-empty, `effort_seconds` an `int ≥ 0`); `capabilities()` sync, stable |
+| `CodeRepositoryProvider` | `list_modules` returns `CodeModule`s with **unique ids**; `get_impacted(None)` and unknown hints return a list (empty ok), never raise; impacted ⊆ listed graph |
+| `DocumentSourceProvider` | `list_documents` returns `DocumentRef`s with unique ids; **every listed id is fetchable** and yields `bytes` (not `str`) |
+| `LLMClient` | `complete_json` returns a `dict` |
+| `EmbeddingProvider` | one vector per input, aligned, uniform non-zero dimension, floats; both `kind`s accepted; **deterministic** for the same input (auditable matching) |
+| `RerankProvider` | one float score per document, aligned with input order (raw logits) |
+| `RegistryMetadataProvider` | `latest` returns `PackageMetadata` or `None`; unknown package / backend failure **degrades to `None`**, never raises |
+
+Two ways to run it:
+
+1. **In your test suite** — subclass the contract class, provide an *offline*
+   `provider` fixture (canned data / mock transport; never live credentials):
+
+   ```python
+   from etki_api.conformance import WorkItemProviderContract
+
+   class TestAcmeConformance(WorkItemProviderContract):
+       known_item_id = "ACME-1"          # optional: exercises get_work_item
+
+       @pytest.fixture
+       def provider(self):
+           return offline_acme_provider()
+   ```
+
+2. **Zero test code** — declare a `conformance` factory on your `PluginSpec`
+   returning offline provider instances per port, then:
+
+   ```bash
+   python -m etki_api.conformance etki-plugin-acme --report conformance-report.json
+   # or, with etki installed: python -m etki.plugin verify etki-plugin-acme
+   ```
+
+   The JSON report carries the version-compat matrix fields
+   (`version`, `api_compat`, `etki_api_version`) the verified marketplace
+   consumes. Exit code 0 = conformant.
+
+**CI in one job** — the repo publishes a reusable workflow; add to your plugin's CI:
+
+```yaml
+jobs:
+  conformance:
+    uses: yasinyaman/etki/.github/workflows/plugin-conformance.yml@master
+    with:
+      plugin-dist: etki-plugin-acme
+```
+
+If your repo uses pytest-asyncio in `strict` mode, nothing extra is needed —
+the contract tests carry their own `@pytest.mark.asyncio` markers.
 
 ### etki-api versioning policy
 

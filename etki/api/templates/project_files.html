@@ -76,17 +76,25 @@
   <div style="background:#fff; border:1px solid #E6E2D9; border-radius:13px; padding:20px 22px; box-shadow:0 1px 2px rgba(16,40,28,.03);">
     <h3 style="margin:0 0 4px; font-size:15.5px; font-weight:700;">{{ t('pf.work_items') }}</h3>
     <p style="margin:0 0 14px; font-size:12.5px; color:var(--pmo-muted);">{{ t('pf.work_items_desc')|safe }}</p>
+    {% for h in degraded if h.port == 'work_items' %}
+    <div class="summary err" style="margin:0 0 12px;" title="{{ h.error or '' }}">⚠ {{ t('pd.degraded_work_items', name=h.adapter) }}</div>
+    {% endfor %}
     <form method="post" action="/projeler/{{ project.id }}/ayarlar/work-items">
       <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
         <label style="font-size:13px; font-weight:600; color:#33424A;">{{ t('pf.adapter') }}</label>
-        <select name="adapter">
-          {% for a in ['none', 'file', 'jira', 'glpi'] %}
+        <select name="adapter"
+                hx-get="/projeler/{{ project.id }}/ayarlar/work-items/form"
+                hx-include="this" hx-target="#wi-options" hx-swap="innerHTML" hx-trigger="change">
+          {% for a in work_item_adapters %}
           <option value="{{ a }}" {{ 'selected' if a == work_items.adapter else '' }}>{{ a }}</option>
           {% endfor %}
+          {# Configured but currently unresolvable (e.g. its plugin was disabled): keep it selected #}
+          {% if work_items.adapter not in work_item_adapters %}
+          <option value="{{ work_items.adapter }}" selected>{{ work_items.adapter }}</option>
+          {% endif %}
         </select>
       </div>
-      <textarea name="options" rows="3" placeholder="{{ t('pf.options_ph')|safe }}">{% for k, v in work_items.options.items() %}{{ k }}: {{ v }}
-{% endfor %}</textarea>
+      <div id="wi-options">{% include "work_items_form.html" %}</div>
       <div style="margin-top:10px;"><button class="btn" type="submit">{{ t('pf.save_index') }}</button></div>
     </form>
   </div>

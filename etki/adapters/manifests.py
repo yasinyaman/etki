@@ -128,6 +128,12 @@ def _local(tag: str) -> str:
 
 
 def _parse_pom(text: str) -> list[DeclaredDependency]:
+    # Reject any DTD/entity declaration before parsing. ElementTree never resolves EXTERNAL
+    # entities (so there is no XXE), but a DOCTYPE with nested internal entities is the
+    # "billion laughs" expansion-DoS vector on older libexpat. A manifest is enrichment-only
+    # data, so a pom carrying a DOCTYPE is never legitimate — drop it rather than parse it.
+    if "<!DOCTYPE" in text or "<!ENTITY" in text:
+        return []
     root = ET.fromstring(text)
     deps: list[DeclaredDependency] = []
     for dep in root.iter():

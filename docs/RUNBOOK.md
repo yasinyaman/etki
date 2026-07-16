@@ -143,6 +143,33 @@ documents:  { adapter: filesystem|composite, ... }
 ```
 Proof: `tests/integration/test_composite.py` — the documents `filesystem → composite` swap yields the same decision.
 
+## Plugins (install, lockfile, policy)
+
+Third-party adapters ship as **plugin packages** against `etki-api` (entry-point
+group `etki.adapters`). Operational rules:
+
+- **Policy is an env-only admin lock:** `ETKI_PLUGIN_POLICY=verified_only`
+  (default — installs blocked, non-editable unverified distributions don't even
+  load) | `allow_git` | `allow_local`. Deliberately NOT a UI/Settings value;
+  `.etki/llm.json` cannot touch it.
+- **Install** (operator CLI, capability confirmation from the static manifest —
+  plugin code is never executed for the prompt):
+  ```bash
+  ETKI_PLUGIN_POLICY=allow_git uv run python -m etki.plugin install git+https://…@v1.2.0
+  ETKI_PLUGIN_POLICY=allow_local uv run python -m etki.plugin install ./acme.whl --sha256 <hash>
+  ```
+  Branches are rejected; tags resolve to the full commit SHA and the SHA is what
+  installs and locks. Wheel installs verify SHA-256 BEFORE anything runs.
+- **`etki-plugins.lock`** (TOML, repo-committable) records source/commit/hash/
+  capabilities per plugin. `python -m etki.plugin sync` reproduces the exact
+  state on a new machine (local wheels re-hash-verified); `remove <dist>`
+  uninstalls + drops the entry; `list [--json]` is the KVKK inventory feed.
+- **Containers install plugins at IMAGE BUILD TIME** from the lockfile — see
+  `Dockerfile.plugins`. Runtime `sync` inside a container does not survive a
+  restart (immutable images); it is for bare-metal/venv deployments.
+- Private git hosts: authenticate via a git **credential helper** — never embed
+  tokens in the URL (it would be recorded in the lockfile).
+
 ## Pilot (shadow mode) & calibration
 
 ```bash

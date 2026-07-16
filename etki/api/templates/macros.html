@@ -135,7 +135,7 @@
     {% endif %}
 
     <dt>{{ t('ev.auditability') }}</dt>
-    <dd class="meta">{{ t('ev.audit_line', m=d.model_version, f=d.index_freshness, d=d.human_decision.value|tr_status) }}</dd>
+    <dd class="meta">{{ t('ev.audit_line', m=d.model_version, f=d.index_freshness, d=d.human_decision.value|tr_status) }}{% if d.plugin_set %}<br>{{ t('ev.plugin_set') }}: <span class="mono">{{ d.plugin_set|join(', ') }}</span>{% endif %}</dd>
   </dl>
 
   {% if d.evidence.cited_clauses %}

@@ -193,9 +193,14 @@ Kilit kararlar:
 
 ---
 
-### Faz 2 — Runtime Keşif ve Yükleme · **1–1,5 hafta**
+### Faz 2 — Runtime Keşif ve Yükleme · **1–1,5 hafta** · ✅ UYGULANDI 2026-07-15
 
 **Hedef:** `pip install plugin` + restart = config'den seçilebilir; hatalar izole; audit damgalı.
+
+> Uygulama notları: gate `tests/integration/test_plugin_runtime.py`'de üç assert'le pinli.
+> Bilinçli sapma: LLM plugin kancası `ETKI_LLM_PROVIDER` adı üzerinden eklendi; embed/rerank
+> için config'te bir sağlayıcı-adı alanı olmadığından o iki kanca ertelendi (ihtiyaç çıkınca
+> `ETKI_EMBED_PROVIDER`/`ETKI_RERANK_PROVIDER` alanlarıyla birlikte gelir).
 
 | # | İş kalemi | Dosyalar | Testler |
 |---|---|---|---|
@@ -214,7 +219,14 @@ Kilit kararlar:
 
 ---
 
-### Faz 3 — Git Dağıtımı: pin + lockfile · **1–1,5 hafta**
+### Faz 3 — Git Dağıtımı: pin + lockfile · **1–1,5 hafta** · ✅ UYGULANDI 2026-07-15 (F4'ten sonra)
+
+> Uygulama notları: gate `tests/integration/test_plugin_install_gate.py` (venv sil → sync →
+> freeze bayt-aynı, `--no-deps --offline` ile ağsız); ters-öncelik kanıtı
+> `tests/unit/test_plugin_policy.py`; branch reddi + tag→SHA + hash-önce-kurulum
+> `tests/unit/test_plugin_installer.py`. Ek: `verified_only` altında editable-olmayan
+> dağıtımlar registry'de `blocked` (PEP 610 editable muafiyeti — dev/CI çalışmaya devam eder).
+> Policy reddi exit 3 (script'lenebilir).
 
 | # | İş kalemi | Dosyalar | Testler |
 |---|---|---|---|
@@ -230,7 +242,13 @@ Kilit kararlar:
 
 ---
 
-### Faz 4 — Conformance Suite ("AdapterBench") · **1,5–2 hafta** · F1 biter bitmez başlar, F3'e paralel (öne-çekme kararı)
+### Faz 4 — Conformance Suite ("AdapterBench") · **1,5–2 hafta** · F1 biter bitmez başlar, F3'e paralel (öne-çekme kararı) · ✅ UYGULANDI 2026-07-15 (F3'ten önce)
+
+> Uygulama notları: sözleşmeler önce yazılıp glpi/jira/linear/fakes davranışlarına karşı
+> doğrulandı (GLPI'nin no-match→son-kayıtlar fallback'i sözleşmeye "liste döner, exception
+> asla" olarak girdi). Runner raporu compat-matris alanlarını taşıyor; `etki plugin verify`
+> ince delegasyon. etki-api 0.1.1 (additive — `>=0.1,<0.2` pinleri çalışmaya devam eder).
+> mypy src-layout `__main__` çakışması dar exclude ile çözüldü (öngörülen tuzak).
 
 | # | İş kalemi | Dosyalar | Testler |
 |---|---|---|---|
@@ -248,7 +266,17 @@ Kilit kararlar:
 
 ---
 
-### Faz 5 — Verified Marketplace · **2–2,5 hafta**
+### Faz 5 — Verified Marketplace · **2–2,5 hafta** · ✅ UYGULANDI 2026-07-15 (harici repo bootstrap'ı hariç)
+
+> Uygulama notları: gate `tests/integration/test_marketplace_flow.py` (fixture index'e karşı
+> tam zincir; bozuk sha256 VE bozuk imza ayrı ayrı iptal + lockfile dokunulmamış; mirror →
+> ağsız kurulum; kurcalanmış wheel hash'le yakalanır) + `test_plugins_ui.py` (policy hiçbir
+> route'tan değiştirilemez, toggle round-trip, viewer 403). sigstore `etki[plugins]` extra'sında;
+> uv çözümlemesi için `constraint-dependencies = ["betterproto==2.0.0b7"]` gerekti. İmza birim
+> sınırı: bizim tesisatımız (bayt+bundle+pinli kimlik verifier'a ulaşır) — canlı kripto,
+> harici repo kurulunca scheduled workflow'da. **BEKLEYEN dış işler:** `etki-plugins` reposu
+> (imzalı index + release workflow + PROCESS.md küration dokümanı) + canlı-imza scheduled
+> workflow'u (başta non-blocking).
 
 | # | İş kalemi | Dosyalar | Testler |
 |---|---|---|---|

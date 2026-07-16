@@ -129,7 +129,11 @@ def add_repo(
 
 
 def set_work_items(project_id: str, adapter: str, options: dict) -> ProjectConfig:
-    """Sets the project's work-tracking / PM environment (file | jira | glpi)."""
+    """Sets the project's work-tracking / PM environment.
+
+    Accepts any adapter name the registry can resolve (builtin or plugin) —
+    resolution/validation happens at adapter-build time; the UI additionally
+    validates against `registry.available_adapters("work_items")` up front."""
     project = _require(project_id)
     project.connectors.work_items = ConnectorConfig(adapter=adapter, options=options)
     _upsert(project)

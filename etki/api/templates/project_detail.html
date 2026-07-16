@@ -35,6 +35,11 @@
                hx-target="#index-history-inline" hx-swap="innerHTML"
                class="mono" style="font-size:11px; color:#9A5F23; text-decoration:none; margin-left:6px;">{{ t('ih.link') }}</a></span>
           <span>{{ t('pd.work_items') }}: <b style="color:#33424A; font-weight:600;">{{ p.work_items }}</b></span>
+          {% for h in degraded %}
+          <span title="{{ h.error or '' }}"
+                style="font-size:11px; font-weight:700; padding:2px 9px; border-radius:20px; color:#A83228; background:#FBEAE8;">
+            ⚠ {{ t('pd.degraded_' + h.port, name=h.adapter) }}</span>
+          {% endfor %}
         </p>
         <div id="index-history-inline" style="max-width:560px;"></div>
       </div>
@@ -103,6 +108,9 @@
       </div>
       <div style="background:#fff; border:1px solid #E6E2D9; border-radius:13px; padding:16px 18px;">
         <h3 style="margin:0 0 12px; font-size:14.5px; font-weight:700;">{{ t('rep.effort_pool') }}</h3>
+        {% if degraded|selectattr('port', 'equalto', 'work_items')|list %}
+        <p class="meta" style="margin:0 0 10px; color:#A83228;">⚠ {{ t('rep.pool_degraded_note') }}</p>
+        {% endif %}
         <div style="display:flex; flex-direction:column; gap:12px;">
           {% for category, pool in k.effort_pools.items() %}
           <div>

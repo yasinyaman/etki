@@ -16,6 +16,19 @@
 ## Denetlenebilirlik (audit)
 - Her triyaj + insan aksiyonu `audit_events` tablosuna tutarlı kimlik, aktör, zaman damgası, model/prompt sürümü ve kanıtla yazılır → **her karar sözleşmesel ihtilaf için yeniden kurgulanabilir** (`GET /casefiles/{id}/audit`).
 - Model/prompt sürümü ve indeks tazeliği her kararda saklanır.
+- **Aktif plugin seti** de her kararda saklanır (`plugin_set`: `ad@versiyon[+gcommit]`,
+  git kurulumlarında commit hash'i dahil) — hangi adaptör kodunun kanıtı ürettiği
+  sonradan kanıtlanabilir. Plugin'siz kurulumda boş listedir.
+
+## Plugin envanteri (üçüncü-taraf adaptörler)
+- Kurulu plugin'ler, sürümleri ve durumları `python -m etki.plugin list --json` ile
+  makine-okunur alınır — VERBİS/DPIA envanterine bu çıktı eklenmelidir.
+- Her plugin, manifest'inde (`etki-plugin.toml`) **güvenlik yetenek beyanı** taşır:
+  ağ erişimi, dosya-sistemi erişimi ve beyan edilen dış uçlar (endpoints). Bir plugin
+  sözleşme/talep verisine adaptör olarak erişebilir → kuruma alınmadan önce bu beyan
+  incelenmeli, beyan edilen dış uçların veri ikametgâhı kurallarına uygunluğu
+  doğrulanmalıdır. (Beyanın teknik olarak zorlanması — sandbox — plan Faz 6'dadır;
+  bugünkü kontrol kurulum onayı + envanterdir.)
 - **Süreç günlüğü** (`.etki/process-log.jsonl`, gitignore'da): Sor ekranı soruları
   (soru → strateji → eşleşen düğümler → asistan yanıtı) ve indeksleme koşuları buraya
   eklenir. Sorular serbest metin olduğundan **kişisel veri içerebilir** — dosya

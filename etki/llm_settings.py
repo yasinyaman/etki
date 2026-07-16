@@ -58,8 +58,14 @@ def save(updates: dict[str, Any]) -> dict[str, Any]:
         else:
             data[key] = value
     UI_OVERRIDES_FILE.parent.mkdir(parents=True, exist_ok=True)
-    UI_OVERRIDES_FILE.write_text(
-        json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-    )
+    payload = (json.dumps(data, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    # Create the file 0600 ATOMICALLY: the secret (API key) is never briefly world-readable
+    # in the create→chmod window, and a crash mid-write can't leave a 0644 file with the key.
+    # O_CREAT's mode applies only on creation, so chmod after covers an existing looser file.
+    fd = os.open(str(UI_OVERRIDES_FILE), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    try:
+        os.write(fd, payload)
+    finally:
+        os.close(fd)
     os.chmod(UI_OVERRIDES_FILE, 0o600)
     return data

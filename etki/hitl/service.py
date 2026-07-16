@@ -75,6 +75,7 @@ class ApprovalService:
                             "confidence": d.confidence,
                             "model_version": d.model_version,
                             "index_freshness": d.index_freshness,
+                            "plugin_set": d.plugin_set,
                             "clauses": d.evidence.contract_clauses_cited,
                             "impacted": d.evidence.impacted_modules,
                         }

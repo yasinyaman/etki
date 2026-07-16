@@ -1,0 +1,81 @@
+{% extends "pmo_base.html" %}
+{% block title %}{{ t('plugins.title') }} — Etki{% endblock %}
+{% block screen %}
+<main style="padding:26px 28px 40px; max-width:860px;">
+  <div style="margin-bottom:18px;">
+    <h1 style="margin:0; font-size:25px; font-weight:800; letter-spacing:-.02em;">{{ t('plugins.title') }}</h1>
+    <p style="margin:6px 0 0; font-size:14px; color:#5C6B72;">{{ t('plugins.desc') }}</p>
+  </div>
+
+  <!-- POLICY: read-only by design — env-only admin lock, no POST route exists -->
+  <div style="background:#fff; border:1px solid #E6E2D9; border-radius:13px; padding:16px 20px; margin-bottom:16px;">
+    <div style="font-size:13px; color:var(--pmo-muted);">{{ t('plugins.policy_label') }}</div>
+    <div style="font-size:16px; font-weight:700; font-family:var(--pmo-mono);">{{ policy }}</div>
+    <p style="margin:8px 0 0; font-size:12px; color:var(--pmo-muted);">{{ t('plugins.policy_note') }}</p>
+  </div>
+
+  <div style="background:#fff; border:1px solid #E6E2D9; border-radius:13px; padding:20px 22px;">
+    <h3 style="margin:0 0 12px; font-size:15.5px; font-weight:700;">{{ t('plugins.installed') }}</h3>
+    {% if not statuses %}
+      <p style="font-size:13.5px; color:var(--pmo-muted);">{{ t('plugins.empty') }}</p>
+    {% else %}
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px;">
+        <thead>
+          <tr style="text-align:left; color:var(--pmo-muted); font-size:12px;">
+            <th style="padding:6px 8px;">{{ t('plugins.col_name') }}</th>
+            <th style="padding:6px 8px;">{{ t('plugins.col_version') }}</th>
+            <th style="padding:6px 8px;">{{ t('plugins.col_source') }}</th>
+            <th style="padding:6px 8px;">{{ t('plugins.col_compat') }}</th>
+            <th style="padding:6px 8px;">{{ t('plugins.col_ports') }}</th>
+            <th style="padding:6px 8px;">{{ t('plugins.col_state') }}</th>
+            <th style="padding:6px 8px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for s in statuses %}
+          <tr style="border-top:1px solid #EFEBE2;">
+            <td style="padding:8px;">
+              <span style="font-weight:600;">{{ s.name }}</span>
+              {% if s.name in verified %}
+                <span style="background:#0E7C7B; color:#fff; border-radius:9px; padding:1px 8px; font-size:11px; margin-left:6px;">✓ {{ t('plugins.verified_badge') }}</span>
+              {% endif %}
+            </td>
+            <td style="padding:8px; font-family:var(--pmo-mono);">{{ s.version }}{% if s.commit %}+g{{ s.commit[:7] }}{% endif %}</td>
+            <td style="padding:8px;">{{ sources.get(s.name, '—') }}</td>
+            <td style="padding:8px; font-family:var(--pmo-mono); font-size:12px;">{{ s.api_compat or '—' }}</td>
+            <td style="padding:8px;">{{ s.ports|join(', ') or '—' }}</td>
+            <td style="padding:8px;">
+              {% if s.state == 'active' %}
+                <span style="color:#0E7C7B; font-weight:600;">● {{ t('plugins.state_active') }}</span>
+              {% elif s.state == 'disabled' %}
+                <span style="color:#8A8577;">○ {{ t('plugins.state_disabled') }}</span>
+              {% else %}
+                <span style="color:#B3402A; font-weight:600;" title="{{ s.error or '' }}">✗ {{ t('plugins.state_' + s.state) }}</span>
+              {% endif %}
+            </td>
+            <td style="padding:8px; text-align:right;">
+              {% if s.state in ('active', 'disabled') %}
+              <form method="post" action="/ayarlar/eklentiler/{{ s.name }}/durum" style="display:inline;"
+                    {% if s.state == 'active' %}onsubmit="return confirm('{{ t('plugins.confirm_disable') }}');"{% endif %}>
+                <input type="hidden" name="disabled" value="{{ '0' if s.state == 'disabled' else '1' }}">
+                <button type="submit" class="btn-sm">
+                  {{ t('plugins.toggle_enable') if s.state == 'disabled' else t('plugins.toggle_disable') }}
+                </button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% if s.error and s.state not in ('active',) %}
+          <tr><td colspan="7" style="padding:0 8px 8px; font-size:12px; color:var(--pmo-muted);">{{ s.error }}</td></tr>
+          {% endif %}
+        {% endfor %}
+        </tbody>
+      </table>
+      <p style="margin:14px 0 0; font-size:12px; color:var(--pmo-muted);">
+        {{ t('plugins.stamp_label') }}: <span style="font-family:var(--pmo-mono);">{{ stamp or '[]' }}</span>
+      </p>
+    {% endif %}
+    <p style="margin:14px 0 0; font-size:12px; color:var(--pmo-muted);">{{ t('plugins.install_note') }}</p>
+  </div>
+</main>
+{% endblock %}

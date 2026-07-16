@@ -193,6 +193,28 @@ async def dependency_version_diff(
     )
 
 
+def _register_plugin_tools() -> int:
+    """Registers callables from the ``etki.mcp_tools`` entry-point group as MCP
+    tools. Per-tool isolation: a broken plugin tool is logged and skipped, the
+    server (and every builtin tool above) keeps working. Returns the count."""
+    import logging
+    from importlib import metadata
+
+    log = logging.getLogger("etki")
+    count = 0
+    for ep in metadata.entry_points(group="etki.mcp_tools"):
+        try:
+            fn = ep.load()
+            mcp.tool()(fn)
+            count += 1
+        except Exception:  # noqa: BLE001 — plugin tool must not kill the server
+            log.exception("MCP plugin aracı yüklenemedi: %r", ep.name)
+    return count
+
+
+_register_plugin_tools()
+
+
 def main() -> None:
     mcp.run()
 

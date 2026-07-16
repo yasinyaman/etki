@@ -13,6 +13,9 @@ from dataclasses import dataclass, field
 from functools import lru_cache
 
 from etki.adapters.code_index import MergedCodeRepository, StaticCodeRepository
+from etki.adapters.fakes.document import FakeDocumentSourceProvider
+from etki.adapters.fakes.work_item import FakeWorkItemProvider
+from etki.adapters.plugins import get_plugin_registry
 from etki.adapters.registry import (
     build_code_repo,
     build_documents,
@@ -47,6 +50,21 @@ class UnknownProjectError(KeyError):
 
 
 @dataclass
+class AdapterHealth:
+    """Runtime health of one configured adapter. NOT persisted — recomputed on every
+    context build, so it reflects the last build (plus pool refreshes for work items).
+
+    Distinguishes a project deliberately configured with the fake/none adapter (ok,
+    no badge) from one whose REAL adapter broke and silently degraded to the Fake
+    fallback (degraded, badge on the project screens)."""
+
+    port: str  # "work_items" | "documents"
+    adapter: str  # the CONFIGURED adapter name (e.g. "linear"), not the fallback
+    state: str = "ok"  # "ok" | "degraded"
+    error: str | None = None
+
+
+@dataclass
 class AppContext:
     engines: dict[str, TriageEngine]
     consumed: dict[str, dict[str, float]]
@@ -67,6 +85,18 @@ class AppContext:
     # Per-project clause memory (precedents/disputes) — the ENGINE holds the same
     # dict by reference (like `consumed`), refresh_precedents mutates it in place.
     precedents: dict[str, dict[str, dict]] = field(default_factory=dict)
+    # Per-project adapter health (see AdapterHealth) — the UI's degradation badges.
+    adapter_health: dict[str, list[AdapterHealth]] = field(default_factory=dict)
+
+    def degraded_adapters(self, project_id: str) -> list[AdapterHealth]:
+        return [h for h in self.adapter_health.get(project_id, []) if h.state == "degraded"]
+
+    def _set_health(self, project_id: str, port: str, state: str, error: str | None) -> None:
+        for h in self.adapter_health.get(project_id, []):
+            if h.port == port:
+                h.state = state
+                h.error = error
+                return
 
     def refresh_precedents(self, project_id: str | None = None) -> None:
         """Recomputes the clause memory from the DB after a PMO decision and
@@ -101,8 +131,14 @@ class AppContext:
                 continue
             try:
                 fresh = consumed_by_category(items_fn())
-            except Exception:
+            except Exception as exc:
                 logger.warning("[%s] efor havuzu tazelenemedi", project_id, exc_info=True)
+                # A live-call failure degrades the badge; it never auto-heals here —
+                # a refresh success on the FAKE fallback of a build-time failure must
+                # not hide the real problem. Healing happens on the next context build.
+                self._set_health(
+                    project_id, "work_items", "degraded", f"{type(exc).__name__}: {exc}"
+                )
                 continue
             consumed.clear()
             consumed.update(fresh)
@@ -258,6 +294,7 @@ def get_context() -> AppContext:
     consumed_map: dict[str, dict[str, float]] = {}
     precedents_map: dict[str, dict[str, dict]] = {}
     work_item_providers: dict[str, object] = {}
+    health_map: dict[str, list[AdapterHealth]] = {}
     indexes: dict[str, Index] = {}
     index_paths: dict[str, str] = {}
     meta: list[dict[str, str]] = []
@@ -267,6 +304,10 @@ def get_context() -> AppContext:
     # Decision stamp: the real decision path/version rather than a fake constant
     # (for audit/disputes).
     model_version = _resolve_model_version(settings, llm is not None)
+    # Active plugin set (name@version[+gsha]) — stamped onto every decision so a
+    # dispute can reconstruct which adapter code produced the evidence. [] when
+    # no plugins are installed → historical decisions stay byte-identical.
+    plugin_set = get_plugin_registry().stamp()
 
     for project in projects:
         # Don't let the whole app crash if one project's indexing/setup blows up: log, skip.
@@ -280,7 +321,30 @@ def get_context() -> AppContext:
         # the DB; if index.json is stale it gets synced. Otherwise the engine would revert
         # to v1 while the audit trail still says vN.
         _reconcile_with_db(index, project, settings, repo)
-        work_items = build_work_items(project.connectors.work_items)
+        # Adapter isolation (finer than the whole-project skip above): a broken
+        # work-item/document adapter — e.g. a failed plugin — degrades THIS
+        # capability and the project keeps serving. Same philosophy as
+        # TriageEngine._safe_find_similar: enrichment failures never kill triage.
+        # Each fallback is recorded in AdapterHealth so the UI can show a badge
+        # instead of proudly displaying the configured adapter name while the
+        # runtime provider is actually the empty Fake.
+        health: list[AdapterHealth] = []
+        wi_adapter = project.connectors.work_items.adapter
+        try:
+            work_items = build_work_items(project.connectors.work_items)
+            health.append(AdapterHealth("work_items", wi_adapter))
+        except Exception as exc:
+            logger.exception(
+                "[%s] work-item adaptörü kurulamadı; efor geçmişi devre dışı "
+                "(tahmin kod metriğine düşer)",
+                project.id,
+            )
+            work_items = FakeWorkItemProvider([])
+            health.append(
+                AdapterHealth(
+                    "work_items", wi_adapter, "degraded", f"{type(exc).__name__}: {exc}"
+                )
+            )
         consumed = (
             consumed_by_category(work_items.all_items())
             if hasattr(work_items, "all_items")
@@ -306,12 +370,27 @@ def get_context() -> AppContext:
         except Exception:  # noqa: BLE001 — memory is an enrichment, not a dependency
             logger.warning("[%s] madde hafızası yüklenemedi", project.id, exc_info=True)
             precedents = {}
+        doc_adapter = project.connectors.documents.adapter
+        try:
+            documents = build_documents(project.connectors.documents)
+            health.append(AdapterHealth("documents", doc_adapter))
+        except Exception as exc:
+            logger.exception(
+                "[%s] doküman adaptörü kurulamadı; boş kaynakla devam", project.id
+            )
+            documents = FakeDocumentSourceProvider([])
+            health.append(
+                AdapterHealth(
+                    "documents", doc_adapter, "degraded", f"{type(exc).__name__}: {exc}"
+                )
+            )
         engines[project.id] = TriageEngine(
             work_items,
             StaticCodeRepository(index.modules),
-            build_documents(project.connectors.documents),
+            documents,
             index.baseline,
             model_version=model_version,
+            plugin_set=plugin_set,
             index_freshness=index.freshness,
             consumed_by_category=consumed,
             in_scope_threshold=settings.in_scope_threshold,
@@ -335,6 +414,7 @@ def get_context() -> AppContext:
         precedents_map[project.id] = precedents
         consumed_map[project.id] = consumed
         work_item_providers[project.id] = work_items
+        health_map[project.id] = health
         indexes[project.id] = index
         index_paths[project.id] = project.resolved_index_path()
         meta.append({"id": project.id, "name": project.name})
@@ -353,4 +433,5 @@ def get_context() -> AppContext:
         work_item_providers=work_item_providers,
         wiki=wiki_store,
         precedents=precedents_map,
+        adapter_health=health_map,
     )

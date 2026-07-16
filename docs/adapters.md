@@ -23,6 +23,13 @@ triage time never fails the triage).
 
 ## Work-item providers (`WorkItemProvider`)
 
+Builtin work-item adapters validate their options through the typed models in
+`etki/adapters/options.py` (a missing key is a field-level Pydantic message, not a
+KeyError) — the same mechanism plugins get via `AdapterFactory.options_model`. The
+project settings UI renders its options form from these models' JSON schema; keep
+the field lists below in sync with the models. Secret fields hold `env:VAR`
+references, resolved only at adapter-build time.
+
 ### `file` — JSON export (vendor-agnostic)
 
 - **Source:** a local JSON file (exported ticket data); no network.

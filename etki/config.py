@@ -86,6 +86,10 @@ class Settings(BaseSettings):
     # Session-cookie signing secret — MUST come from env in PRODUCTION.
     # Dev uses a fixed default (a warning is logged at startup); prod must override.
     session_secret: str = "dev-insecure-change-me"
+    # Emit the session cookie with the Secure attribute (HTTPS-only) and send HSTS. Keep OFF
+    # for local HTTP development; turn ON (ETKI_COOKIE_SECURE=true) for any TLS deployment so
+    # the session cookie is never transmitted in cleartext.
+    cookie_secure: bool = False
     # First PMO user (created at startup only if no users exist at all).
     admin_user: str | None = None
     admin_password: str | None = None

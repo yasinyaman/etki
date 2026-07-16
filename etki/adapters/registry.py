@@ -9,6 +9,8 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
+from pydantic import BaseModel
+
 from etki.adapters.ast_code_index import AstCodeRepositoryProvider
 from etki.adapters.azure_devops_work_item import AzureDevOpsWorkItemProvider
 from etki.adapters.composite_document import CompositeDocumentSourceProvider
@@ -23,7 +25,16 @@ from etki.adapters.gitlab_work_item import GitlabWorkItemProvider
 from etki.adapters.glpi_work_item import GlpiWorkItemProvider
 from etki.adapters.jira_work_item import JiraWorkItemProvider
 from etki.adapters.joern_code_repo import JoernCodeRepositoryProvider
-from etki.adapters.linear_work_item import LinearWorkItemProvider
+from etki.adapters.options import (
+    BUILTIN_OPTION_MODELS,
+    AzureDevOpsOptions,
+    FileOptions,
+    GitlabOptions,
+    GlpiOptions,
+    JiraOptions,
+    RedmineOptions,
+)
+from etki.adapters.plugins import get_plugin_registry
 from etki.adapters.redmine_work_item import RedmineWorkItemProvider
 from etki.adapters.sharepoint_document import SharePointDocumentSourceProvider
 from etki.config import ConnectorConfig, ConnectorsConfig, Settings
@@ -56,6 +67,18 @@ def build_llm_client(settings: Settings) -> LLMClient | None:
         from etki.adapters.llm_anthropic import AnthropicLLMClient
 
         return AnthropicLLMClient(api_key=api_key, model=settings.anthropic_model)
+    if provider != "openai":  # plugin hook: a non-builtin provider name resolves via plugins
+        factory = get_plugin_registry().find("llm", provider)
+        if factory is not None:
+            options = factory.options_model.model_validate(
+                {
+                    "base_url": settings.llm_base_url,
+                    "api_key": settings.llm_api_key,
+                    "model": settings.llm_model,
+                    "timeout": settings.llm_timeout,
+                }
+            )
+            return factory.build(options)  # type: ignore[return-value]
     if settings.llm_base_url:  # openai-compatible (Ollama/vLLM)
         from etki.adapters.llm_openai import OpenAICompatibleLLMClient
 
@@ -134,8 +157,65 @@ def build_package_registry(settings: Settings):  # type: ignore[no-untyped-def] 
     )
 
 
+# Builtin adapter names per port — the single source for error messages and the
+# UI's adapter dropdown ("empty" stays an accepted alias of "none", not listed).
+_BUILTIN_ADAPTERS: dict[str, list[str]] = {
+    "work_items": ["none", "fake", "file", "glpi", "jira", "gitlab", "redmine", "azure_devops"],
+    "code_repo": ["fake", "ast", "joern", "graphify"],
+    "documents": ["fake", "filesystem", "composite", "confluence", "sharepoint"],
+}
+
+
+def available_adapters(port: str) -> list[str]:
+    """All adapter names a port can resolve right now: builtins + ACTIVE plugins.
+
+    Builtins always win on a name collision, so the builtin list comes first;
+    plugin names come from the registry (disabled/failed plugins never register
+    factories, hence never appear here)."""
+    builtins = _BUILTIN_ADAPTERS.get(port, [])
+    plugins = [n for n in get_plugin_registry().names(port) if n not in builtins]
+    return builtins + plugins
+
+
+def options_model_for(port: str, adapter: str) -> type[BaseModel] | None:
+    """The Pydantic options model for an adapter name, if one exists — builtin
+    table first (builtins win, as in resolution), then the plugin's declared
+    ``options_model``. None → the UI falls back to the free-form textarea."""
+    model = BUILTIN_OPTION_MODELS.get(port, {}).get(adapter)
+    if model is not None:
+        return model
+    factory = get_plugin_registry().find(port, adapter)
+    return factory.options_model if factory is not None else None
+
+
 def _unknown(label: str, name: str, known: list[str]) -> ValueError:
     return ValueError(f"Bilinmeyen {label} adaptörü: {name!r}. Mevcut: {known}")
+
+
+def _resolve_secret_refs(value: object) -> object:
+    """Recursively resolves `env:VAR` references in an options tree.
+
+    Runs BEFORE options reach a plugin: secret resolution stays in core, a
+    plugin only ever sees the resolved values (never the raw reference)."""
+    if isinstance(value, dict):
+        return {k: _resolve_secret_refs(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_resolve_secret_refs(v) for v in value]
+    if isinstance(value, str) and value.startswith("env:"):
+        return _secret(value)
+    return value
+
+
+def _try_plugin(port: str, cfg: ConnectorConfig) -> object | None:
+    """Plugin fall-through: consulted only AFTER the builtin if/elif chains, so
+    a plugin can never shadow a builtin adapter name. Options are validated
+    through the plugin's declared Pydantic model — a missing key is a proper
+    validation message, not a bare KeyError."""
+    factory = get_plugin_registry().find(port, cfg.adapter)
+    if factory is None:
+        return None
+    options = factory.options_model.model_validate(_resolve_secret_refs(cfg.options))
+    return factory.build(options)
 
 
 def build_documents(cfg: ConnectorConfig) -> DocumentSourceProvider:
@@ -159,11 +239,10 @@ def build_documents(cfg: ConnectorConfig) -> DocumentSourceProvider:
             opt["drive_id"],
             opt.get("folder", ""),
         )
-    raise _unknown(
-        "documents",
-        cfg.adapter,
-        ["fake", "filesystem", "composite", "confluence", "sharepoint"],
-    )
+    provider = _try_plugin("documents", cfg)
+    if provider is not None:
+        return provider  # type: ignore[return-value]  # conformance suite guards the Protocol
+    raise _unknown("documents", cfg.adapter, available_adapters("documents"))
 
 
 def build_code_repo(cfg: ConnectorConfig) -> CodeRepositoryProvider:
@@ -192,7 +271,10 @@ def build_code_repo(cfg: ConnectorConfig) -> CodeRepositoryProvider:
             refresh=opt.get("refresh", True),
             churn=compute_churn(src),
         )
-    raise _unknown("code_repo", cfg.adapter, ["fake", "ast", "joern", "graphify"])
+    provider = _try_plugin("code_repo", cfg)
+    if provider is not None:
+        return provider  # type: ignore[return-value]
+    raise _unknown("code_repo", cfg.adapter, available_adapters("code_repo"))
 
 
 def _secret(value: str) -> str:
@@ -211,54 +293,42 @@ def _secret(value: str) -> str:
 
 
 def build_work_items(cfg: ConnectorConfig) -> WorkItemProvider:
-    opt = cfg.options
+    # Builtins validate through the typed models in adapters/options.py — a missing
+    # key is a field-level Pydantic message (like the plugin path), not a KeyError.
     if cfg.adapter in ("none", "empty"):  # no history → effort falls back to code metrics
         return FakeWorkItemProvider([])
     if cfg.adapter == "fake":
         return FakeWorkItemProvider()
     if cfg.adapter == "file":
-        return FileWorkItemProvider(opt["path"])
+        fo = FileOptions.model_validate(cfg.options)
+        return FileWorkItemProvider(fo.path)
     if cfg.adapter == "glpi":
+        go = GlpiOptions.model_validate(cfg.options)
         return GlpiWorkItemProvider(
-            opt["base_url"], _secret(opt["app_token"]), _secret(opt["user_token"])
+            go.base_url, _secret(go.app_token), _secret(go.user_token)
         )
     if cfg.adapter == "jira":
-        return JiraWorkItemProvider(
-            opt["base_url"], opt["email"], _secret(opt["api_token"]), opt.get("jql", "")
-        )
+        jo = JiraOptions.model_validate(cfg.options)
+        return JiraWorkItemProvider(jo.base_url, jo.email, _secret(jo.api_token), jo.jql)
     if cfg.adapter == "gitlab":
+        lo = GitlabOptions.model_validate(cfg.options)
         return GitlabWorkItemProvider(
-            opt["base_url"],
-            opt["project"],
-            _secret(opt["token"]),
-            labels=opt.get("labels"),
-            issue_type=opt.get("issue_type"),
+            lo.base_url,
+            lo.project,
+            _secret(lo.token),
+            labels=lo.labels,
+            issue_type=lo.issue_type,
         )
     if cfg.adapter == "redmine":
-        return RedmineWorkItemProvider(opt["base_url"], _secret(opt["api_key"]))
-    if cfg.adapter == "linear":
-        return LinearWorkItemProvider(
-            _secret(opt["api_key"]), float(opt.get("hours_per_point", 0.0))
-        )
+        ro = RedmineOptions.model_validate(cfg.options)
+        return RedmineWorkItemProvider(ro.base_url, _secret(ro.api_key))
     if cfg.adapter == "azure_devops":
-        return AzureDevOpsWorkItemProvider(
-            opt["organization"], opt["project"], _secret(opt["pat"])
-        )
-    raise _unknown(
-        "work_items",
-        cfg.adapter,
-        [
-            "none",
-            "fake",
-            "file",
-            "glpi",
-            "jira",
-            "gitlab",
-            "redmine",
-            "azure_devops",
-            "linear",
-        ],
-    )
+        ao = AzureDevOpsOptions.model_validate(cfg.options)
+        return AzureDevOpsWorkItemProvider(ao.organization, ao.project, _secret(ao.pat))
+    provider = _try_plugin("work_items", cfg)
+    if provider is not None:
+        return provider  # type: ignore[return-value]
+    raise _unknown("work_items", cfg.adapter, available_adapters("work_items"))
 
 
 def build_providers(config: ConnectorsConfig) -> Providers:

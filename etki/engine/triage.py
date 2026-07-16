@@ -93,6 +93,7 @@ class TriageEngine:
         *,
         model_version: str = "deterministic",
         index_freshness: str = "unknown",
+        plugin_set: list[str] | None = None,
         consumed_by_category: dict[str, float] | None = None,
         in_scope_threshold: float = _IN_SCOPE_MIN,
         gray_threshold: float = _GRAY_MIN,
@@ -118,6 +119,9 @@ class TriageEngine:
         self._baseline = baseline
         self._model_version = model_version
         self._index_freshness = index_freshness
+        # Audit stamp next to model_version: which plugin versions were active
+        # when this engine decided ([] on plugin-free deployments).
+        self._plugin_set = list(plugin_set or [])
         # Keep the CALLER's dict by reference (even when empty): the background
         # pool refresh updates it in place and the engine must see the new totals.
         self._consumed = consumed_by_category if consumed_by_category is not None else {}
@@ -366,7 +370,7 @@ class TriageEngine:
                     inc_score = max(inc_score, floor)
 
         touches_scoped = any(m.mapped_scope_items for m in impacted)
-        similar = await self._safe_find_similar(sub.item)
+        similar, history_unreachable = await self._safe_find_similar(sub.item)
         # Source-fusion coverage (spec/code/history) — missing layers become assumption notes.
         covered_scope = (best_inc is not None and inc_score >= self._gray_min) or exc_hits > 0
         # The free text the engine produces (basis/reasoning/assumptions/coverage) is
@@ -412,7 +416,8 @@ class TriageEngine:
 
         clauses = [matched.source_clause] if matched and matched.source_clause else []
         assumptions = self._assumptions(
-            covered_scope, bool(impacted), bool(similar), lang=self._language
+            covered_scope, bool(impacted), bool(similar),
+            history_unreachable=history_unreachable, lang=self._language,
         )
         if llm_note:
             assumptions = [llm_note, *assumptions]
@@ -504,7 +509,8 @@ class TriageEngine:
                 for m in impacted
             ],
             source_coverage=self._coverage(
-                covered_scope, inc_score, impacted, similar, lang=self._language
+                covered_scope, inc_score, impacted, similar,
+                history_unreachable=history_unreachable, lang=self._language,
             ),
             assumptions=assumptions,
             reasoning=reasoning,
@@ -536,6 +542,7 @@ class TriageEngine:
             cr_draft=cr_draft,
             index_freshness=self._index_freshness,
             model_version=self._model_version,
+            plugin_set=self._plugin_set,
             human_decision=PmoDecision.PENDING,
             decided_at=datetime.now(UTC),
         )
@@ -547,6 +554,7 @@ class TriageEngine:
         impacted: list[CodeModule],
         similar: list[WorkItem],
         *,
+        history_unreachable: bool = False,
         lang: str = "tr",
     ) -> list[SourceCoverage]:
         """Whether each of the three sources (spec/code/history) covers this request."""
@@ -560,11 +568,14 @@ class TriageEngine:
             if impacted
             else t("engine.cov.no_modules", lang)
         )
-        hist_detail = (
-            t("engine.cov.similar", lang, n=len(similar))
-            if similar
-            else t("engine.cov.no_similar", lang)
-        )
+        if similar:
+            hist_detail = t("engine.cov.similar", lang, n=len(similar))
+        elif history_unreachable:
+            # Distinguishable in the frozen evidence: "the source could not be
+            # queried" is a different fact than "queried fine, zero matches".
+            hist_detail = t("engine.cov.history_unreachable", lang)
+        else:
+            hist_detail = t("engine.cov.no_similar", lang)
         return [
             SourceCoverage(
                 source=t("engine.cov.spec", lang), covered=covered_scope, detail=scope_detail
@@ -579,14 +590,24 @@ class TriageEngine:
 
     @staticmethod
     def _assumptions(
-        covered_scope: bool, has_code: bool, has_history: bool, *, lang: str = "tr"
+        covered_scope: bool,
+        has_code: bool,
+        has_history: bool,
+        *,
+        history_unreachable: bool = False,
+        lang: str = "tr",
     ) -> list[str]:
         """Assumptions made for missing sources (transparency + a more accurate estimate)."""
         notes: list[str] = []
         if covered_scope and not has_code:
             notes.append(t("engine.asm.spec_no_code", lang))
         if not has_history:
-            notes.append(t("engine.asm.no_history", lang))
+            key = (
+                "engine.asm.history_unreachable"
+                if history_unreachable
+                else "engine.asm.no_history"
+            )
+            notes.append(t(key, lang))
         if not covered_scope and has_code:
             notes.append(t("engine.asm.code_no_spec", lang))
         if not covered_scope and not has_code and not has_history:
@@ -886,16 +907,19 @@ class TriageEngine:
         # no gray drift).
         return None, "weak", impacted, note
 
-    async def _safe_find_similar(self, text: str) -> list[WorkItem]:
+    async def _safe_find_similar(self, text: str) -> tuple[list[WorkItem], bool]:
         # If the remote PM environment (Jira/GLPI) is unreachable, triage must not
-        # blow up → effort falls back to the code metric.
+        # blow up → effort falls back to the code metric. The failure flag only
+        # changes the FROZEN EVIDENCE TEXT ("source unreachable" instead of "no
+        # similar work") — decision/confidence/effort follow the exact same path
+        # as a genuine zero-hit search.
         try:
-            return await self._work_items.find_similar(text)
+            return await self._work_items.find_similar(text), False
         except Exception:  # noqa: BLE001
             logger.warning(
                 "work_items.find_similar başarısız; benzer-iş olmadan devam.", exc_info=True
             )
-            return []
+            return [], True
 
     def _match_scope(
         self, query: set[str]

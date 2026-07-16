@@ -185,6 +185,10 @@ class TriageDecision(BaseModel):
     cr_draft: CrDraft | None = None
     index_freshness: str | None = None
     model_version: str = "fake-0"
+    # Active plugin set at decision time ("name@version[+gsha7]", sorted) — same
+    # audit purpose as model_version. Defaults to [] so pre-plugin decisions and
+    # frozen eval sets stay byte-identical.
+    plugin_set: list[str] = Field(default_factory=list)
     human_decision: PmoDecision = PmoDecision.PENDING
     decided_at: datetime | None = None
 

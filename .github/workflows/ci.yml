@@ -56,3 +56,11 @@ jobs:
 
       - name: Gate / back-test (eval)
         run: uv run python -m eval.runner
+
+  # The first-party plugin goes through the SAME reusable workflow a third-party
+  # plugin would use — proves the published path end-to-end on every push.
+  plugin-conformance:
+    uses: ./.github/workflows/plugin-conformance.yml
+    with:
+      plugin-dist: etki-plugin-linear
+      package-path: packages/etki-plugin-linear

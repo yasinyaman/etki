@@ -57,10 +57,11 @@ _MOVED_PORTS = [
     "WorkItemProvider",
 ]
 
-# Built-in adapters that must compile against etki-api ALONE (the Faz 1 gate).
+# Built-in adapters that must compile against etki-api ALONE (the Faz 1 gate;
+# linear left this list when it became the out-of-tree plugin in Faz 2).
 _API_ONLY_ADAPTERS = [
     "etki.adapters.glpi_work_item",
-    "etki.adapters.linear_work_item",
+    "etki.adapters.jira_work_item",
 ]
 
 

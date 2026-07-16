@@ -4,6 +4,17 @@ All notable changes to the plugin API. Semver: major = breaking, minor = new
 optional method/field, patch = fixes. `0.x` until the first external plugin
 ships — breaking changes are allowed but MUST be announced here.
 
+## [0.1.1] - 2026-07-15
+
+### Added
+- **Conformance suite** (`etki_api.conformance`, extra `etki-api[conformance]`):
+  contract-test classes for all 7 ports (documented semantics — no-match → list,
+  normalization, alignment, determinism, degrade-to-None) + a runner
+  (`python -m etki_api.conformance <dist> --report out.json`) that binds a
+  plugin's `PluginSpec.conformance()` offline providers and emits a JSON report
+  with version-compat matrix fields. Port contracts themselves are UNCHANGED —
+  additive within the 0.1 range (`>=0.1,<0.2` pins keep working).
+
 ## [0.1.0] - 2026-07-15
 
 First cut of the frozen plugin API, extracted from `etki.core` (the symbols are

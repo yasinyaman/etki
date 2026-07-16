@@ -1,0 +1,19 @@
+# EXAMPLE: extending the Etki image with plugins — the REPRODUCIBLE path.
+#
+# Containers are immutable: `etki plugin sync` inside a RUNNING container does
+# not survive a restart. Plugins are installed at IMAGE BUILD TIME from the
+# lockfile instead; runtime `sync` is for bare-metal/venv deployments only.
+#
+#   docker build -f Dockerfile.plugins -t etki-with-plugins .
+#
+# Prereqs in the build context: your `etki-plugins.lock` and (for local-wheel
+# entries) a `plugins/` directory holding the locked wheels at the SAME paths
+# the lockfile records. git-sourced entries need network at build time.
+FROM ghcr.io/yasinyaman/etki:latest
+
+USER root
+COPY etki-plugins.lock /app/etki-plugins.lock
+# Local-wheel lock entries verify their SHA-256 against these files before install:
+# COPY plugins/ /app/plugins/
+RUN uv run python -m etki.plugin sync && chown -R app:app /app
+USER app

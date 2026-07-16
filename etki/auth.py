@@ -41,6 +41,12 @@ def verify_password(password: str, salt: str, expected_hash: str) -> bool:
     return hmac.compare_digest(computed, expected_hash)  # constant-time comparison
 
 
+# Decoy salt/hash for the unknown-username branch of `authenticate`: verifying against it
+# runs the same pbkdf2 cost as a real user, so the response time does not reveal whether the
+# username exists (username-enumeration timing guard). Computed once per process.
+_DECOY_SALT, _DECOY_HASH = hash_password(secrets.token_hex(16))
+
+
 @dataclass(frozen=True)
 class UserRecord:
     username: str
@@ -122,7 +128,12 @@ class UserStore:
         """Returns a UserRecord (incl. session token) on the correct password, else None."""
         with self._sf() as session:
             row = session.get(UserRow, username.strip())
-            if row is None or not verify_password(password, row.salt, row.password_hash):
+            if row is None:
+                # Run an equivalent pbkdf2 against a decoy so an absent username takes the same
+                # time as a wrong password → no enumeration oracle.
+                verify_password(password, _DECOY_SALT, _DECOY_HASH)
+                return None
+            if not verify_password(password, row.salt, row.password_hash):
                 return None
             return UserRecord(row.username, row.role, session_token(row.salt, row.password_hash))
 

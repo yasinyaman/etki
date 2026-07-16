@@ -176,6 +176,11 @@ MESSAGES: dict[str, dict[str, str]] = {
         "en": "File too large (limit: {mb}MB). Upload a smaller file.",
         "de": "Datei zu groß (Limit: {mb} MB). Laden Sie eine kleinere Datei hoch.",
     },
+    "err.too_many_files": {
+        "tr": "Tek seferde en fazla {n} dosya yükleyebilirsiniz.",
+        "en": "You can upload at most {n} files at once.",
+        "de": "Sie können höchstens {n} Dateien auf einmal hochladen.",
+    },
     "err.assistant_unavailable": {
         "tr": "Asistan şu an yanıt veremedi (LLM erişilemiyor olabilir). Triyaj kartları ve "
               "kanıt zinciri geçerlidir; lütfen sonra tekrar deneyin.",
@@ -325,6 +330,56 @@ MESSAGES: dict[str, dict[str, str]] = {
         "en": "AI Assistant (LLM)",
         "de": "KI-Assistent (LLM)",
     },
+    "plugins.title": {"tr": "Eklentiler", "en": "Plugins", "de": "Plugins"},
+    "plugins.desc": {
+        "tr": "Kurulu adaptör eklentileri — salt görünürlük. Kurulum ve policy yalnızca operatör/CLI tarafındadır.",
+        "en": "Installed adapter plugins — visibility only. Installation and policy live on the operator/CLI side.",
+        "de": "Installierte Adapter-Plugins — nur Sichtbarkeit. Installation und Policy liegen auf der Operator-/CLI-Seite.",
+    },
+    "plugins.policy_label": {
+        "tr": "Kurulum politikası (ETKI_PLUGIN_POLICY — yalnızca ortam değişkeni)",
+        "en": "Install policy (ETKI_PLUGIN_POLICY — environment-only)",
+        "de": "Installationsrichtlinie (ETKI_PLUGIN_POLICY — nur Umgebungsvariable)",
+    },
+    "plugins.policy_note": {
+        "tr": "Bu bir yönetici kilididir; arayüzden değiştirilemez. Değerler: verified_only (varsayılan) · allow_git · allow_local.",
+        "en": "This is an admin lock; it cannot be changed from the UI. Values: verified_only (default) · allow_git · allow_local.",
+        "de": "Dies ist eine Admin-Sperre; sie kann nicht über die Oberfläche geändert werden. Werte: verified_only (Standard) · allow_git · allow_local.",
+    },
+    "plugins.installed": {"tr": "Kurulu eklentiler", "en": "Installed plugins", "de": "Installierte Plugins"},
+    "plugins.empty": {
+        "tr": "Kurulu eklenti yok (entry-point grubu: etki.adapters).",
+        "en": "No plugins installed (entry-point group: etki.adapters).",
+        "de": "Keine Plugins installiert (Entry-Point-Gruppe: etki.adapters).",
+    },
+    "plugins.col_name": {"tr": "Ad", "en": "Name", "de": "Name"},
+    "plugins.col_version": {"tr": "Versiyon", "en": "Version", "de": "Version"},
+    "plugins.col_source": {"tr": "Kaynak", "en": "Source", "de": "Quelle"},
+    "plugins.col_compat": {"tr": "Uyum", "en": "Compat", "de": "Kompat."},
+    "plugins.col_ports": {"tr": "Portlar", "en": "Ports", "de": "Ports"},
+    "plugins.col_state": {"tr": "Durum", "en": "State", "de": "Status"},
+    "plugins.state_active": {"tr": "etkin", "en": "active", "de": "aktiv"},
+    "plugins.state_disabled": {"tr": "devre dışı", "en": "disabled", "de": "deaktiviert"},
+    "plugins.state_failed": {"tr": "hatalı", "en": "failed", "de": "fehlgeschlagen"},
+    "plugins.state_incompatible": {"tr": "uyumsuz", "en": "incompatible", "de": "inkompatibel"},
+    "plugins.state_blocked": {"tr": "engelli (policy)", "en": "blocked (policy)", "de": "blockiert (Policy)"},
+    "plugins.verified_badge": {"tr": "Doğrulanmış", "en": "Verified", "de": "Verifiziert"},
+    "plugins.toggle_disable": {"tr": "Devre dışı bırak", "en": "Disable", "de": "Deaktivieren"},
+    "plugins.toggle_enable": {"tr": "Etkinleştir", "en": "Enable", "de": "Aktivieren"},
+    "plugins.confirm_disable": {
+        "tr": "Eklenti devre dışı kalınca onu kullanan projeler boş (sahte) adaptöre düşer "
+              "— efor geçmişi kapanır. Devam edilsin mi?",
+        "en": "Disabling drops every project using this plugin to the empty (fake) adapter "
+              "— effort history goes dark. Continue?",
+        "de": "Beim Deaktivieren fallen alle Projekte, die dieses Plugin nutzen, auf den "
+              "leeren (Fake-)Adapter zurück — die Aufwandshistorie entfällt. Fortfahren?",
+    },
+    "plugins.stamp_label": {"tr": "Audit damgası", "en": "Audit stamp", "de": "Audit-Stempel"},
+    "plugins.install_note": {
+        "tr": "Kurulum/kaldırma: python -m etki.plugin install|remove (operatör CLI). Bu ekran kod kurulumu yapamaz.",
+        "en": "Install/remove: python -m etki.plugin install|remove (operator CLI). This screen cannot acquire code.",
+        "de": "Installieren/Entfernen: python -m etki.plugin install|remove (Operator-CLI). Diese Ansicht kann keinen Code beziehen.",
+    },
     "set.llm_desc": {
         "tr": "Sohbet, ön analiz zenginleştirme ve zayıf eşleşmelerde anlamsal destek için "
               "kullanılır. Triyaj kararları her durumda deterministik ve denetlenebilir kalır.",
@@ -400,6 +455,11 @@ MESSAGES: dict[str, dict[str, str]] = {
         "tr": "Zaman aşımı sayı olmalı (örn. 60).",
         "en": "Timeout must be a number (e.g. 60).",
         "de": "Timeout muss eine Zahl sein (z. B. 60).",
+    },
+    "set.err_metadata_url": {
+        "tr": "Bu uç noktaya izin verilmiyor (bulut metadata/link-local adresi engellidir).",
+        "en": "This endpoint is not allowed (cloud metadata / link-local addresses are blocked).",
+        "de": "Dieser Endpunkt ist nicht erlaubt (Cloud-Metadaten-/Link-local-Adressen sind gesperrt).",
     },
     # --- user management card ---
     "set.users_title": {"tr": "Kullanıcılar", "en": "Users", "de": "Benutzer"},
@@ -482,6 +542,16 @@ MESSAGES: dict[str, dict[str, str]] = {
               "Code wider. Jede Änderung unter Dateien & Einstellungen re-indexiert das Projekt.",
     },
     "pd.work_items": {"tr": "İş-takip", "en": "Work items", "de": "Aufgaben"},
+    "pd.degraded_work_items": {
+        "tr": "efor kaynağına ulaşılamıyor ({name}) — efor geçmişi devre dışı",
+        "en": "effort source unreachable ({name}) — effort history disabled",
+        "de": "Aufwandsquelle nicht erreichbar ({name}) — Aufwandshistorie deaktiviert",
+    },
+    "pd.degraded_documents": {
+        "tr": "doküman kaynağına ulaşılamıyor ({name}) — boş kaynakla devam ediliyor",
+        "en": "document source unreachable ({name}) — continuing with an empty source",
+        "de": "Dokumentquelle nicht erreichbar ({name}) — es wird mit leerer Quelle fortgefahren",
+    },
     "pd.files_settings": {
         "tr": "Dosyalar & Ayarlar", "en": "Files & Settings", "de": "Dateien & Einstellungen",
     },
@@ -873,6 +943,11 @@ MESSAGES: dict[str, dict[str, str]] = {
         "tr": "efor havuzu tanımlı madde yok", "en": "no clause with a defined effort pool",
         "de": "keine Klausel mit definiertem Aufwandspool",
     },
+    "rep.pool_degraded_note": {
+        "tr": "Efor kaynağına ulaşılamıyor — havuz tüketimi güncel olmayabilir.",
+        "en": "Effort source unreachable — pool consumption may be out of date.",
+        "de": "Aufwandsquelle nicht erreichbar — Poolverbrauch ist evtl. nicht aktuell.",
+    },
     "rep.kpi_defs": {
         "tr": "KPI tanımları (nasıl hesaplanır?)", "en": "KPI definitions (how computed?)",
         "de": "KPI-Definitionen (wie berechnet?)",
@@ -1058,6 +1133,7 @@ MESSAGES: dict[str, dict[str, str]] = {
         "en": "model {m} · index freshness {f} · PMO decision: {d}",
         "de": "Modell {m} · Index-Aktualität {f} · PMO-Entscheidung: {d}",
     },
+    "ev.plugin_set": {"tr": "Eklentiler", "en": "Plugins", "de": "Plugins"},
     "ev.cited_header": {
         "tr": "Atıf yapılan madde(ler) — sözleşme içeriği:",
         "en": "Cited clause(s) — contract content:",
@@ -1552,6 +1628,27 @@ MESSAGES: dict[str, dict[str, str]] = {
               "env:VARIABLE</span>).",
     },
     "pf.adapter": {"tr": "Adaptör", "en": "Adapter", "de": "Adapter"},
+    "pf.invalid_options": {
+        "tr": "Seçenekler doğrulanamadı: {msgs}",
+        "en": "Options failed validation: {msgs}",
+        "de": "Optionen konnten nicht validiert werden: {msgs}",
+    },
+    "pf.opts_secret_hint": {
+        "tr": "Sır alanlarına env:DEGISKEN referansı yazın — değerler düz metin saklanmaz.",
+        "en": "Use env:VARIABLE references for secret fields — values are never stored in plain text.",
+        "de": "Für Geheimnisfelder env:VARIABLE-Referenzen verwenden — Werte werden nie im Klartext gespeichert.",
+    },
+    "pf.opts_raw_link": {
+        "tr": "serbest metin modu", "en": "free-text mode", "de": "Freitextmodus",
+    },
+    "pf.unknown_adapter": {
+        "tr": "Bilinmeyen iş-takip adaptörü: {name}. Mevcut: {known}. Henüz kurulmamış bir "
+              "eklenti adaptörü yalnızca projects.yaml üzerinden yazılabilir.",
+        "en": "Unknown work-item adapter: {name}. Available: {known}. A not-yet-installed "
+              "plugin adapter can only be set via projects.yaml.",
+        "de": "Unbekannter Work-Item-Adapter: {name}. Verfügbar: {known}. Ein noch nicht "
+              "installierter Plugin-Adapter kann nur über projects.yaml gesetzt werden.",
+    },
     "pf.options_ph": {
         "tr": "ör. file → path: samples/…/work_items.json&#10;ör. jira → base_url: https://…"
               "&#10;     project_key: ABC&#10;     api_token: env:JIRA_TOKEN",
@@ -1725,6 +1822,14 @@ MESSAGES: dict[str, dict[str, str]] = {
         "de": "Keine ähnliche frühere Arbeit → Aufwand aus Codemetrik/Annahme; "
               "verbessert sich mit echten Logs.",
     },
+    "engine.asm.history_unreachable": {
+        "tr": "Efor kaynağına ulaşılamadı → benzer iş sorgulanamadı; efor kod "
+              "metriği/varsayımdan. Karar bundan etkilenmez.",
+        "en": "Effort source unreachable → similar work could not be queried; effort "
+              "comes from code metrics/assumption. The decision is unaffected.",
+        "de": "Aufwandsquelle nicht erreichbar → ähnliche Arbeit konnte nicht abgefragt "
+              "werden; Aufwand aus Codemetrik/Annahme. Die Entscheidung bleibt unberührt.",
+    },
     "engine.asm.code_no_spec": {
         "tr": "Şartnamede açık madde yok, kod mevcut → bakım/iyileştirme varsayıldı.",
         "en": "No explicit clause in the specification, code exists → assumed "
@@ -1759,6 +1864,10 @@ MESSAGES: dict[str, dict[str, str]] = {
     },
     "engine.cov.no_similar": {
         "tr": "benzer iş yok", "en": "no similar work", "de": "keine ähnliche Arbeit",
+    },
+    "engine.cov.history_unreachable": {
+        "tr": "kaynağa ulaşılamadı", "en": "source unreachable",
+        "de": "Quelle nicht erreichbar",
     },
     "engine.llm_note": {
         "tr": "LLM destekli eşleştirme", "en": "LLM-assisted matching",

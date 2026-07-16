@@ -16,6 +16,8 @@ classifiers = [
 ]
 dependencies = [
     "etki-api",
+    "packaging>=24",
+    "tomli-w>=1.0",
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
     "pydantic>=2.7",
@@ -38,6 +40,9 @@ dependencies = [
 [project.optional-dependencies]
 # Optional code-graph engine: tree-sitter based, 165+ languages, no JVM.
 graphify = ["graphifyy>=0.9.8,<1.0"]
+# Marketplace signature verification (sigstore keyless). Base/air-gapped
+# installs never need it — offline installs are hash-mandatory instead.
+plugins = ["sigstore>=3,<4"]
 
 [dependency-groups]
 dev = [
@@ -57,6 +62,12 @@ docs = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.uv]
+# sigstore → sigstore-protobuf-specs pins betterproto to a PRE-release; uv's
+# universal resolution only accepts pre-releases when EXPLICITLY declared, so
+# we declare the pin ourselves (applies only when sigstore is resolved).
+constraint-dependencies = ["betterproto==2.0.0b7"]
 
 [tool.uv.workspace]
 members = ["packages/*"]
@@ -84,7 +95,9 @@ select = ["E", "F", "I", "UP", "B", "C4", "SIM"]
 [tool.mypy]
 python_version = "3.12"
 plugins = ["pydantic.mypy"]
-exclude = ["^samples/", "^alembic/"]
+# The conformance __main__ collides with etki's CLI __main__ modules in mypy's
+# module mapping (src-layout quirk); it's a 2-line delegate — excluded.
+exclude = ["^samples/", "^alembic/", "etki_api/conformance/__main__\\.py$"]
 warn_unused_ignores = true
 warn_redundant_casts = true
 disallow_untyped_defs = true
@@ -95,7 +108,7 @@ module = ["tests.*", "eval.*"]
 disallow_untyped_defs = false
 
 [[tool.mypy.overrides]]
-module = ["docx.*", "openpyxl.*", "pypdf.*", "graphify_mcp.*"]
+module = ["docx.*", "openpyxl.*", "pypdf.*", "graphify_mcp.*", "sigstore.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

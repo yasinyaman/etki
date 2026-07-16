@@ -29,6 +29,7 @@ from etki_api import (
     AdapterFactory,
     Capabilities,
     PluginSpec,
+    PortName,
     SecurityCapabilities,
     WorkItem,
 )
@@ -126,6 +127,47 @@ def _build(options: BaseModel) -> LinearWorkItemProvider:
     )
 
 
+# --- Conformance (offline double) -------------------------------------------
+
+_CANNED_ISSUES = [
+    {
+        "identifier": "ENG-1",
+        "title": "Raporlama ekranına CSV dışa aktarım",
+        "description": "rapor listesi csv indirilebilsin",
+        "estimate": 3,
+        "state": {"name": "Done"},
+        "labels": {"nodes": [{"name": "raporlama"}]},
+    },
+    {
+        "identifier": "ENG-2",
+        "title": "Ödeme zaman aşımı düzeltmesi",
+        "description": "ödeme çağrısı kopuyor",
+        "estimate": 2,
+        "state": {"name": "Done"},
+        "labels": {"nodes": []},
+    },
+]
+
+
+class _OfflineLinear(LinearWorkItemProvider):
+    """Conformance double: cans the GraphQL transport, keeps the real mapping —
+    `python -m etki_api.conformance etki-plugin-linear` runs credential-free."""
+
+    async def _graphql(self, query: str, variables: dict[str, Any]) -> dict[str, Any]:
+        if "searchIssues" in query:
+            limit = int(variables.get("first", 5))
+            return {"searchIssues": {"nodes": _CANNED_ISSUES[:limit]}}
+        wanted = variables.get("id")
+        for issue in _CANNED_ISSUES:
+            if issue["identifier"] == wanted:
+                return {"issue": issue}
+        raise KeyError(wanted)
+
+
+def _conformance() -> dict[PortName, object]:
+    return {"work_items": _OfflineLinear("offline-key", hours_per_point=4.0)}
+
+
 PLUGIN = PluginSpec(
     name="etki-plugin-linear",
     api_compat=">=0.1,<0.2",
@@ -146,4 +188,5 @@ PLUGIN = PluginSpec(
             build=_build,
         ),
     ),
+    conformance=_conformance,
 )

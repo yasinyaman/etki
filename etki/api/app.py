@@ -128,10 +128,14 @@ async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
 app = FastAPI(title="Etki", version="0.1.0a1", lifespan=lifespan)
 # Cookie lifetime is the "remember me" MAXIMUM (30 days); the real per-session lifetime
 # is enforced server-side via the session's `exp` (8h without remember-me) in current_user.
+# `https_only` adds the cookie's Secure attribute (no cleartext transmission) — ON for TLS
+# deployments (ETKI_COOKIE_SECURE=true), OFF for local HTTP dev.
+_COOKIE_SECURE = Settings().cookie_secure
 app.add_middleware(
     SessionMiddleware,
     secret_key=Settings().session_secret,
     same_site="lax",
+    https_only=_COOKIE_SECURE,
     max_age=30 * 86400,
 )
 # Static assets (locally-vendored HTMX etc.) — no CDN dependency in air-gapped/KVKK
@@ -159,6 +163,24 @@ async def _csrf_guard(request: Request, call_next):  # type: ignore[no-untyped-d
     ):
         return JSONResponse({"detail": "Cross-site istek reddedildi"}, status_code=403)
     return await call_next(request)
+
+
+@app.middleware("http")
+async def _security_headers(request: Request, call_next):  # type: ignore[no-untyped-def]
+    """Baseline hardening headers on every response: block MIME-sniffing of served content,
+    deny framing (clickjacking of the approval buttons), trim the referrer, and — when the
+    deployment is TLS (cookie_secure) — pin HTTPS via HSTS. No CSP here: the HTMX UI uses
+    inline scripts/handlers, so a strict policy needs a nonce pass first (tracked separately);
+    the markdown renderer's `html=False` already neutralizes the raw-HTML XSS sink."""
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    if _COOKIE_SECURE:
+        response.headers.setdefault(
+            "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
+        )
+    return response
 
 
 @app.exception_handler(NotAuthenticated)

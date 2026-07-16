@@ -1,0 +1,52 @@
+# Reusable conformance workflow for Etki plugins ("AdapterBench").
+#
+# A plugin author adds ONE job to their CI:
+#
+#   jobs:
+#     conformance:
+#       uses: yasinyaman/etki/.github/workflows/plugin-conformance.yml@master
+#       with:
+#         plugin-dist: etki-plugin-acme
+#
+# The suite runs OFFLINE against the plugin's `spec.conformance()` providers —
+# no credentials, no network beyond package installation. The JSON report is
+# uploaded as an artifact; its compat-matrix fields (version, api_compat,
+# etki_api_version) feed the verified-marketplace index (Faz 5).
+name: Plugin Conformance
+
+on:
+  workflow_call:
+    inputs:
+      plugin-dist:
+        description: "Distribution name, e.g. etki-plugin-linear"
+        required: true
+        type: string
+      package-path:
+        description: "Path to the plugin package (installed with pip); '.' for the repo root"
+        required: false
+        type: string
+        default: "."
+      python-version:
+        required: false
+        type: string
+        default: "3.12"
+
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+      - name: Install plugin + conformance suite
+        run: |
+          uv venv
+          uv pip install "${{ inputs.package-path }}" "etki-api[conformance]"
+      - name: Run conformance
+        run: uv run python -m etki_api.conformance "${{ inputs.plugin-dist }}" --report conformance-report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: conformance-report-${{ inputs.plugin-dist }}
+          path: conformance-report.json

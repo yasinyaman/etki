@@ -38,16 +38,20 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from markdown_it import MarkdownIt
 from markupsafe import escape
+from pydantic import ValidationError
+from starlette.concurrency import run_in_threadpool
 
 from etki import llm_settings as llm_settings_store
 from etki import projects_store
 from etki.adapters.manifests import first_version, match_packages
 from etki.adapters.registry import (
+    available_adapters,
     build_documents,
     build_embedder,
     build_llm_client,
     build_reranker,
     build_work_items,
+    options_model_for,
 )
 from etki.agent import ask as agent_ask
 from etki.api.context import AppContext, get_context, index_project
@@ -73,6 +77,7 @@ from etki.index_tools import IndexTools
 from etki.indexing.engine import load_index
 from etki.kpi import compute_kpis
 from etki.llm_profile import build_system_preamble, wrap_untrusted
+from etki.net_guard import is_metadata_url
 from etki.process_log import log_event, read_events
 from etki.reporting.docx_report import build_case_report
 
@@ -240,8 +245,12 @@ def _status_chip(s: PmoDecision) -> dict[str, str]:
     return {"label": t(f"status.{s.value}"), "color": color, "bg": bg}
 
 
-# LLM output (comment/chat) markdown → HTML. html=False: raw HTML is escaped (no XSS).
-_MD = MarkdownIt("commonmark", {"linkify": True})
+# LLM output / user request text (pre-analysis, chat) markdown → HTML. `html=False` makes
+# markdown-it ESCAPE any raw HTML in the source (so `<img onerror=…>`/`<script>` render as
+# inert text, not live nodes) — the "commonmark" preset enables html by default, which would
+# be a stored-XSS sink because these fragments are emitted with Jinja `|safe`. Do NOT flip
+# this back on without a sanitizer (nh3/bleach) in front of the `|safe` render.
+_MD = MarkdownIt("commonmark", {"html": False, "linkify": True})
 
 # Post-triage prompts — LANGUAGE-NEUTRAL (output language comes from the project's language
 # via `agent_ask(lang=...)`).
@@ -420,6 +429,21 @@ def _project_tools(project_id: str) -> IndexTools | None:
     work_items = build_work_items(project.connectors.work_items)
     items = work_items.all_items() if hasattr(work_items, "all_items") else []
     return IndexTools(index, items)
+
+
+# Max files accepted in a single multipart upload (DoS guard — the per-file byte cap alone
+# does not bound how many just-under-limit files a request may carry).
+_MAX_UPLOAD_FILES = 50
+
+
+async def _read_upload_bounded(upload: UploadFile) -> bytes | None:
+    """Reads at most `max_upload_mb`+1 bytes so an oversized file is never fully materialized
+    in memory. Returns None (caller rejects) when the file exceeds the cap."""
+    limit = Settings().max_upload_mb * 1024 * 1024
+    raw = await upload.read(limit + 1)
+    if len(raw) > limit:
+        return None
+    return raw
 
 
 def _over_upload_limit(raw: bytes) -> str | None:
@@ -683,9 +707,12 @@ async def ui_case_chat(
         answer = await agent_ask(prompt, _project_tools(pid), **_project_llm_args(pid))
         answer_html = _MD.render(answer)
         # Save the successful turn to the case (so chat about the triage persists).
+        # IDOR guard: the case must belong to the access-checked project — get_case looks up
+        # by id with no project filter, so without this a scoped user could append a chat turn
+        # to another project's case by passing its case_id.
         if case_id:
             case = ctx.repo.get_case(case_id)
-            if case is not None:
+            if case is not None and (case.project_id or "") == pid:
                 case.chat_turns.append(
                     ChatTurn(question=question, answer=answer, at=datetime.now())
                 )
@@ -709,12 +736,15 @@ async def ui_analyze(
 ) -> HTMLResponse:
     pid = ctx.resolve_project(project_id)
     ensure_project_access(user, pid, ctx.user_store)
-    raw = await file.read()
-    over = _over_upload_limit(raw)
-    if over is not None:
-        return _error_fragment(over)
+    raw = await _read_upload_bounded(file)
+    if raw is None:
+        return _error_fragment(t("err.file_too_large", mb=Settings().max_upload_mb))
     try:
-        full_text, items = parse_document(file.filename or "yukleme.txt", raw)
+        # Parsing is sync + CPU-bound (and can be heavy for a large document); run it off the
+        # event loop so one upload can't block every other request on the single worker.
+        full_text, items = await run_in_threadpool(
+            parse_document, file.filename or "yukleme.txt", raw
+        )
     except Exception:
         logger.warning("[%s] yükleme çözümlenemedi: %s", pid, file.filename, exc_info=True)
         return _error_fragment(t("err.file_unreadable"))
@@ -1091,7 +1121,8 @@ async def project_detail(request: Request, project_id: str, ctx: CtxDep) -> Resp
         {"p": p, "project": {"id": project.id, "name": project.name},
          "scope_items": scope_items, "repos": repos, "dependencies": dependencies,
          "deps_online": Settings().deps_online, "k": kpis,
-         "documents": documents, "cases": cases, "monitor": _monitor(ctx)},
+         "documents": documents, "cases": cases, "monitor": _monitor(ctx),
+         "degraded": ctx.degraded_adapters(project_id)},
     )
 
 
@@ -1761,17 +1792,37 @@ async def _documents_view(project: ProjectConfig) -> list[dict]:
     return out
 
 
-async def _files_context(ctx: AppContext, project: ProjectConfig, error: str | None = None) -> dict:
+async def _files_context(
+    ctx: AppContext,
+    project: ProjectConfig,
+    error: str | None = None,
+    attempted_adapter: str | None = None,
+    attempted_opts: dict | None = None,
+) -> dict:
     repos = [
         {"name": r.name, "source": r.git_url or r.src_root or "—", "engine": r.engine}
         for r in project.resolved_repos()
     ]
     wi = project.connectors.work_items
+    adapter_sel = attempted_adapter or wi.adapter
+    # A broken documents connector must not take the settings screen down with it —
+    # that is exactly the screen where the connector gets fixed.
+    try:
+        documents = await _documents_view(project)
+    except Exception:
+        logger.warning("[%s] doküman listesi sağlayıcıdan alınamadı", project.id, exc_info=True)
+        documents = projects_store.list_documents(project.id)
     return {
         "project": {"id": project.id, "name": project.name},
-        "documents": await _documents_view(project),
+        "documents": documents,
         "repos": repos,
-        "work_items": {"adapter": wi.adapter, "options": wi.options},
+        "work_items": {"adapter": adapter_sel, "options": wi.options},
+        # Builtins + active plugins; "fake" is a test double, not a real choice.
+        # A pre-configured adapter that is unlisted (e.g. its plugin got disabled)
+        # still shows as selected — the template appends it.
+        "work_item_adapters": [a for a in available_adapters("work_items") if a != "fake"],
+        "degraded": ctx.degraded_adapters(project.id),
+        **_wi_form_context(project, adapter_sel, attempted=attempted_opts),
         "llm_profile": {
             "language": project.language,
             "domain_profile": project.domain_profile or "",
@@ -1796,6 +1847,60 @@ def _parse_options(text: str) -> dict[str, str]:
         if key.strip():
             opts[key.strip()] = val.strip()
     return opts
+
+
+def _wi_form_fields(adapter: str, current: dict) -> list[dict] | None:
+    """Structured form fields from the adapter's options-model JSON schema (U4).
+
+    None → no model for this adapter → the template falls back to the free-form
+    textarea. Values render AS STORED: an `env:VAR` secret reference stays a
+    reference — resolved values never reach a form field."""
+    model = options_model_for("work_items", adapter)
+    if model is None:
+        return None
+    schema = model.model_json_schema()
+    required = set(schema.get("required", []))
+    fields: list[dict] = []
+    for name, prop in schema.get("properties", {}).items():
+        ftype = prop.get("type")
+        if ftype == "boolean":
+            input_type = "checkbox"
+        elif ftype in ("number", "integer"):
+            input_type = "number"
+        else:  # strings, unions (anyOf), anything exotic → plain text
+            input_type = "text"
+        value = current.get(name, prop.get("default", ""))
+        fields.append(
+            {
+                "name": name,
+                "input_type": input_type,
+                "required": name in required,
+                "value": "" if value is None else str(value),
+                "checked": bool(value) if input_type == "checkbox" else False,
+            }
+        )
+    return fields
+
+
+def _wi_form_context(
+    project: ProjectConfig,
+    adapter: str,
+    mode: str = "auto",
+    attempted: dict | None = None,
+) -> dict:
+    """Context for the work_items_form.html fragment. `attempted` carries the
+    user's rejected values back into the form (a validation 400 must not lose
+    what was typed); otherwise the STORED options prefill — only when the
+    selected adapter is the configured one (switching adapters starts clean)."""
+    current = project.connectors.work_items
+    opts = attempted if attempted is not None else (
+        current.options if adapter == current.adapter else {}
+    )
+    fields = None if mode == "raw" else _wi_form_fields(adapter, opts)
+    return {
+        "wi_fields": fields,
+        "wi_raw": "".join(f"{k}: {v}\n" for k, v in opts.items()),
+    }
 
 
 @router.get("/projeler/{project_id}/dosyalar", response_class=HTMLResponse,
@@ -1847,17 +1952,25 @@ async def project_files_upload(
     project = projects_store.get(project_id)
     if project is None:
         return RedirectResponse("/", status_code=303)
+    if len(files) > _MAX_UPLOAD_FILES:
+        err = t("err.too_many_files", n=_MAX_UPLOAD_FILES)
+        return templates.TemplateResponse(
+            request, "project_files.html", (await _files_context(ctx, project, error=err)),
+            status_code=400,
+        )
     payloads: list[tuple[str, bytes]] = []
     for f in files:
-        raw = await f.read()
-        if not raw:
-            continue
-        over = _over_upload_limit(raw)
-        if over is not None:
+        raw = await _read_upload_bounded(f)
+        if raw is None:
             return templates.TemplateResponse(
-                request, "project_files.html", (await _files_context(ctx, project, error=over)),
+                request, "project_files.html",
+                (await _files_context(
+                    ctx, project, error=t("err.file_too_large", mb=Settings().max_upload_mb)
+                )),
                 status_code=400,
             )
+        if not raw:
+            continue
         payloads.append((f.filename or "yukleme.txt", raw))
     if not payloads:
         return RedirectResponse(f"/projeler/{project_id}/dosyalar", status_code=303)
@@ -1925,6 +2038,25 @@ async def project_repo_delete(
     return RedirectResponse(f"/projeler/{project_id}/dosyalar", status_code=303)
 
 
+@router.get("/projeler/{project_id}/ayarlar/work-items/form", response_class=HTMLResponse,
+            dependencies=[Depends(require_project_access)])
+async def project_work_items_form(
+    request: Request, project_id: str, adapter: str = "", mode: str = "auto"
+) -> Response:
+    """Options-form fragment for the selected adapter (HTMX, read-only render).
+
+    Typed fields come from the adapter's options_model JSON schema; no model or
+    ?mode=raw → the free-form textarea. Saving still goes through the one POST."""
+    project = projects_store.get(project_id)
+    if project is None:
+        return _error_fragment(t("err.project_not_found"))
+    return templates.TemplateResponse(
+        request,
+        "work_items_form.html",
+        {"project": {"id": project.id}, **_wi_form_context(project, adapter, mode=mode)},
+    )
+
+
 @router.post("/projeler/{project_id}/ayarlar/work-items",
              dependencies=[Depends(require_pmo), Depends(require_project_access)])
 async def project_work_items(
@@ -1937,13 +2069,47 @@ async def project_work_items(
     project = projects_store.get(project_id)
     if project is None:
         return RedirectResponse("/", status_code=303)
-    try:
-        projects_store.set_work_items(project_id, adapter, _parse_options(options))
-    except (ValueError, KeyError) as exc:
+
+    async def _reject(message: str, opts: dict | None = None) -> Response:
         return templates.TemplateResponse(
             request, "project_files.html",
-            (await _files_context(ctx, project, error=str(exc))), status_code=400,
+            (await _files_context(ctx, project, error=message,
+                                  attempted_adapter=adapter, attempted_opts=opts)),
+            status_code=400,
         )
+
+    # The UI form is the narrow surface: only names the registry can resolve
+    # RIGHT NOW are accepted (a not-yet-installed plugin name goes in via YAML).
+    if adapter not in available_adapters("work_items"):
+        return await _reject(t(
+            "pf.unknown_adapter", name=adapter,
+            known=", ".join(a for a in available_adapters("work_items") if a != "fake"),
+        ))
+    form = await request.form()
+    if "options" in form:  # free-form textarea (advanced mode / adapters without a model)
+        opts: dict = _parse_options(options)
+    else:  # typed fields; empty optionals are dropped so model defaults apply
+        opts = {
+            k[4:]: str(v)
+            for k, v in form.items()
+            if k.startswith("opt_") and str(v).strip() != ""
+        }
+    # Validate against the options model when one exists — WITHOUT resolving
+    # env: references (whether the variable exists is the deployment's concern,
+    # not the form's; string fields accept the reference as-is).
+    model = options_model_for("work_items", adapter)
+    if model is not None:
+        try:
+            model.model_validate(opts)
+        except ValidationError as exc:
+            msgs = "; ".join(
+                f"{'.'.join(str(p) for p in e['loc'])}: {e['msg']}" for e in exc.errors()
+            )
+            return await _reject(t("pf.invalid_options", msgs=msgs), opts)
+    try:
+        projects_store.set_work_items(project_id, adapter, opts)
+    except (ValueError, KeyError) as exc:
+        return await _reject(str(exc), opts)
     await _reindex(project_id)
     return RedirectResponse(f"/projeler/{project_id}/dosyalar", status_code=303)
 
@@ -2115,6 +2281,11 @@ async def save_llm_settings(
                 request, "ayarlar.html",
                 _ayarlar_context(ctx, error=t("set.err_base_url_required")), status_code=400,
             )
+        if is_metadata_url(llm_base_url):
+            return templates.TemplateResponse(
+                request, "ayarlar.html",
+                _ayarlar_context(ctx, error=t("set.err_metadata_url")), status_code=400,
+            )
         updates["llm_provider"] = "openai"
         updates["llm_base_url"] = llm_base_url.strip()
     else:  # off — the empty-string override beats an env ETKI_LLM_BASE_URL too
@@ -2180,6 +2351,57 @@ def _ayarlar_error(request: Request, ctx: AppContext, message: str) -> HTMLRespo
     return templates.TemplateResponse(
         request, "ayarlar.html", _ayarlar_context(ctx, error=message), status_code=400
     )
+
+
+@router.get(
+    "/ayarlar/eklentiler", response_class=HTMLResponse, dependencies=[Depends(require_pmo)]
+)
+async def plugins_screen(request: Request) -> HTMLResponse:
+    """READ-ONLY plugin visibility (+ the one safe mutation: enable/disable an
+    installed plugin). No install/policy endpoint exists here BY DESIGN — code
+    acquisition is operator/CLI-only, the policy is env-only."""
+    from etki.adapters.plugins import get_plugin_registry
+    from etki.plugin.lockfile import load_lockfile
+    from etki.plugin.policy import current_policy
+
+    registry = get_plugin_registry()
+    try:
+        lock = load_lockfile().plugins
+        verified = {p.name for p in lock if p.verified}
+        # Install source (git|local|verified) lives in the lockfile, not the
+        # runtime status (PluginStatus.source is the constant "plugin").
+        sources = {p.name: p.source for p in lock}
+    except Exception:  # noqa: BLE001 — a corrupt lockfile shows as unverified
+        verified = set()
+        sources = {}
+    return templates.TemplateResponse(
+        request,
+        "plugins.html",
+        {
+            "statuses": registry.statuses(),
+            "stamp": registry.stamp(),
+            "policy": current_policy(),
+            "verified": verified,
+            "sources": sources,
+        },
+    )
+
+
+@router.post("/ayarlar/eklentiler/{name}/durum", dependencies=[Depends(require_pmo)])
+async def plugin_toggle(name: str, request: Request) -> RedirectResponse:
+    """Enable/disable an INSTALLED plugin (the only UI-writable plugin state).
+    Takes effect on the next context build — caches are cleared here."""
+    from etki.adapters.plugins import get_plugin_registry
+    from etki.plugin.state import set_disabled
+
+    registry = get_plugin_registry()
+    if name not in {s.name for s in registry.statuses()}:
+        raise HTTPException(status_code=404, detail="bilinmeyen plugin")
+    form = await request.form()
+    set_disabled(name, form.get("disabled") == "1")
+    get_plugin_registry.cache_clear()
+    get_context.cache_clear()
+    return RedirectResponse("/ayarlar/eklentiler", status_code=303)
 
 
 @router.post("/ayarlar/kullanicilar", response_class=HTMLResponse)
