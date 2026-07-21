@@ -1,0 +1,87 @@
+[
+  {
+    "id": "N3-01",
+    "request_text": "Show customers the current status of their orders on a tracking page",
+    "expected_decision": "IN_SCOPE",
+    "rationale": "Clause 2.1 covers order status tracking directly.",
+    "stratum": "in_scope_direct"
+  },
+  {
+    "id": "N3-02",
+    "request_text": "Shoppers should be able to narrow the catalog by product category",
+    "expected_decision": "IN_SCOPE",
+    "rationale": "Paraphrase of Clause 2.3 category filtering ('narrow the catalog by category').",
+    "stratum": "in_scope_paraphrase"
+  },
+  {
+    "id": "N3-03",
+    "request_text": "Improve product search so partial words still find matching products",
+    "expected_decision": "IN_SCOPE",
+    "actual_effort_hours": 8,
+    "rationale": "Clause 2.3 includes product search; improving match quality is a modification of an in-scope feature. Single close analog in history (NW-301 product search and filtering, 6h) — a real enhancement costs somewhat more than the original build, so a defensible estimate must be a range around the analog, not its point value.",
+    "stratum": "in_scope_paraphrase"
+  },
+  {
+    "id": "N3-04",
+    "request_text": "Accept Bitcoin payments at checkout",
+    "expected_decision": "OUT_OF_SCOPE",
+    "rationale": "Clause 6.1 explicitly excludes cryptocurrency payments (Bitcoin etc.).",
+    "stratum": "out_of_scope_direct"
+  },
+  {
+    "id": "N3-05",
+    "request_text": "Let customers pay with Bitcoin or Ethereum wallets",
+    "expected_decision": "OUT_OF_SCOPE",
+    "rationale": "Clause 6.1 crypto exclusion phrased through two brand names; the multi-brand phrasing must still register as a strong exclusion match.",
+    "stratum": "out_of_scope_paraphrase"
+  },
+  {
+    "id": "N3-06",
+    "request_text": "Onboard outside marketplace sellers so their goods appear in our catalog",
+    "expected_decision": "OUT_OF_SCOPE",
+    "rationale": "Reads like Clause 2.3 catalog work but is third-party marketplace seller integration, excluded by Clause 6.1.",
+    "stratum": "out_of_scope_adversarial"
+  },
+  {
+    "id": "N3-07",
+    "request_text": "Add a loyalty points program with tiered rewards",
+    "expected_decision": "CR_CANDIDATE",
+    "rationale": "No clause covers loyalty/rewards; not excluded either — new capability → CR.",
+    "stratum": "cr_new_capability"
+  },
+  {
+    "id": "N3-08",
+    "request_text": "Customers want product reviews with star ratings and photos",
+    "expected_decision": "CR_CANDIDATE",
+    "rationale": "Reviews/ratings are not covered by any clause and not excluded — new capability → CR.",
+    "stratum": "cr_new_capability"
+  },
+  {
+    "id": "N3-09",
+    "request_text": "Support 5 payment providers in total instead of the current setup",
+    "expected_decision": "CR_CANDIDATE",
+    "rationale": "Clause 2.2 supports integration with at most 3 payment providers; 5 exceeds the contractual limit → CR (the payment effort pool is also already spent, which independently routes to CR).",
+    "stratum": "cr_limit_quota"
+  },
+  {
+    "id": "N3-10",
+    "request_text": "Overhaul the whole payment flow: automatic retries, 3-D Secure, saved cards and refunds automation",
+    "expected_decision": "CR_CANDIDATE",
+    "rationale": "Payments sit under the Clause 2.2 effort pool (30h) which past payment work (~37h) has already exhausted; a flow-wide overhaul cannot fit the pool → CR.",
+    "stratum": "cr_effort_pool"
+  },
+  {
+    "id": "N3-11",
+    "request_text": "Ürün arama sayfasındaki hata için düzeltme sağlanacaktır",
+    "expected_decision": "MAINTENANCE",
+    "rationale": "Turkish request against the English contract: a bug fix in in-scope product search (Clause 2.3) → Clause 7.1 bug-fix maintenance. The boilerplate verb 'sağlanacaktır' must not distort the maintenance routing.",
+    "stratum": "maintenance"
+  },
+  {
+    "id": "N3-12",
+    "request_text": "Magaza sitesi daha hizli acilsin ve modern gorunsun",
+    "expected_decision": "GRAY_AREA",
+    "rationale": "Vague performance/UX wish with no concrete clause to anchor to → gray area, PMO escalation. Typed WITHOUT Turkish diacritics (magaza/hizli/acilsin/gorunsun) — ASCII spelling must not change the routing.",
+    "stratum": "gray_vague"
+  }
+]

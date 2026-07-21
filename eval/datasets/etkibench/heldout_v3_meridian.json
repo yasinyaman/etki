@@ -1,0 +1,88 @@
+[
+  {
+    "id": "M3-01",
+    "request_text": "Add a category filter to the standard reports",
+    "expected_decision": "IN_SCOPE",
+    "actual_effort_hours": 5,
+    "rationale": "Clause 4.2.1 explicitly includes adding date and category filters to reports. Effort labeled from the closest analog (WI-101 date filter, 6h) — a sibling filter is slightly cheaper.",
+    "stratum": "in_scope_direct"
+  },
+  {
+    "id": "M3-02",
+    "request_text": "Make the session timeout configurable by an administrator",
+    "expected_decision": "IN_SCOPE",
+    "actual_effort_hours": 4,
+    "rationale": "Clause 3.1 covers session management; tuning an existing session mechanism is a modification of in-scope functionality. Single close analog in history (WI-310 session timeout configuration, 3h) — a real follow-up costs a bit more than the original, so a defensible estimate must be a range around it, not the point value.",
+    "stratum": "in_scope_direct"
+  },
+  {
+    "id": "M3-03",
+    "request_text": "Let account managers narrow report output to a chosen date window",
+    "expected_decision": "IN_SCOPE",
+    "rationale": "Paraphrase of Clause 4.2.1 date filters ('narrow to a chosen date window' = date filter) without using the words 'date filter'.",
+    "stratum": "in_scope_paraphrase"
+  },
+  {
+    "id": "M3-04",
+    "request_text": "Connect Meridian to our Azure DevOps server so that closed deals automatically create work items there",
+    "expected_decision": "IN_SCOPE",
+    "rationale": "Clause 5.1: integration with at most 2 external systems is in scope and only one (ERP) exists — this is the second. Naming 'Azure DevOps' must NOT trigger the Clause 7.1 IdP/SSO exclusion: a work-item tracker is not an identity provider. The exclusion is about who signs users in, not which vendors we talk to.",
+    "stratum": "in_scope_adversarial"
+  },
+  {
+    "id": "M3-05",
+    "request_text": "Add SAML single sign-on with the corporate identity provider",
+    "expected_decision": "OUT_OF_SCOPE",
+    "rationale": "Clause 7.1 explicitly excludes SSO and third-party IdP/SAML/OAuth integration.",
+    "stratum": "out_of_scope_direct"
+  },
+  {
+    "id": "M3-06",
+    "request_text": "Let staff sign in with Okta or Auth0 instead of local passwords",
+    "expected_decision": "OUT_OF_SCOPE",
+    "rationale": "Clause 7.1 IdP exclusion, phrased purely through product names (Okta, Auth0). A multi-brand request must still be recognized as a strong exclusion match even though both brands normalize to the same concept.",
+    "stratum": "out_of_scope_paraphrase"
+  },
+  {
+    "id": "M3-07",
+    "request_text": "Push live deal updates to sales reps' phones as instant notifications",
+    "expected_decision": "OUT_OF_SCOPE",
+    "rationale": "Clause 7.1 excludes real-time streaming and push notifications; delivery to phones also touches the mobile exclusion. Looks like a small dashboard tweak but is a double exclusion.",
+    "stratum": "out_of_scope_adversarial"
+  },
+  {
+    "id": "M3-08",
+    "request_text": "Add a customer satisfaction survey module with scheduled email campaigns",
+    "expected_decision": "CR_CANDIDATE",
+    "rationale": "No clause covers surveys or email campaigns; it is not excluded either — a genuinely new capability, so a change request.",
+    "stratum": "cr_new_capability"
+  },
+  {
+    "id": "M3-09",
+    "request_text": "Raise the number of concurrent sessions per user from 3 to 10",
+    "expected_decision": "CR_CANDIDATE",
+    "rationale": "Clause 3.1 caps concurrent sessions at 3 per user; asking for 10 exceeds the contractual limit → CR.",
+    "stratum": "cr_limit_quota"
+  },
+  {
+    "id": "M3-10",
+    "request_text": "Rebuild all five standard reports with pivot tables, custom groupings and saved templates",
+    "expected_decision": "CR_CANDIDATE",
+    "rationale": "Reporting sits under the Clause 4.2.1 effort pool (40h) with roughly 20h already consumed by past reporting work; a full rebuild of five reports clearly exceeds the remaining pool → CR.",
+    "stratum": "cr_effort_pool"
+  },
+  {
+    "id": "M3-11",
+    "request_text": "Uretimdeki rapor ekraninda tarih filtresi hatasi var, duzeltilsin",
+    "expected_decision": "MAINTENANCE",
+    "rationale": "A production bug in an in-scope feature (Clause 4.2.1 date filters) → Clause 8.1 bug-fix maintenance. Typed WITHOUT Turkish diacritics (uretim/ekraninda/hatasi/duzeltilsin) — ASCII spelling must not change the routing.",
+    "stratum": "maintenance"
+  },
+  {
+    "id": "M3-12",
+    "request_text": "Raporlarda kategori filtresi desteği sağlanacaktır, buna göre geliştirme yapılması istenmektedir",
+    "expected_decision": "IN_SCOPE",
+    "rationale": "Turkish request against the English contract: category filters on reports are Clause 4.2.1. The contract-boilerplate verbs (sağlanacaktır, yapılması) carry no scope signal and must not distort the match.",
+    "stratum": "cross_lingual_tr"
+  }
+]

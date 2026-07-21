@@ -54,6 +54,7 @@ historical number stays comparable. The full suite has grown around it:
 | `etkibench_v1_meridian.json` | 12 | Meridian CRM | open — fresh 2026-07 batch |
 | `etkibench_v1_northwind.json` | 12 | Northwind Shop | open — fresh 2026-07 batch |
 | `heldout_v2_*.json` | 24 | both | **SEALED** — one-shot, do not run |
+| `heldout_v3_*.json` | 24 | both | **SEALED** — pre-registered 2026-07-21 for the matching/estimator round; scored once after that round merges, then burned |
 
 Northwind files run with `--connectors config/connectors.heldout.yaml`;
 Meridian files with `config/connectors.etkibench.yaml`. Deterministic
