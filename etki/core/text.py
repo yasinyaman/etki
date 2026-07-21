@@ -131,6 +131,16 @@ def tokenize(text: str) -> set[str]:
     return {_canon(w) for w in words if len(w) > 2 and _fold(w) not in _STOP_FOLDED}
 
 
+def surface_token_count(text: str) -> int:
+    """Distinct surviving surface tokens BEFORE canonicalization — how many
+    content words the user actually typed. The short-query cap judges request
+    length on this count, so a brand pair collapsing to one canonical concept
+    ("Okta ve Auth0 entegrasyonu" → {idp, entegrasyon}) is not mistaken for a
+    two-word request."""
+    words = re.findall(r"\w+", text.lower())
+    return len({w for w in words if len(w) > 2 and _fold(w) not in _STOP_FOLDED})
+
+
 def _match(a: str, b: str) -> bool:
     if a == b:
         return True
@@ -153,7 +163,7 @@ MIN_QUERY_TOKENS = 3
 _SHORT_QUERY_CAP = 0.6
 
 
-def score(query: set[str], target: set[str]) -> float:
+def score(query: set[str], target: set[str], *, query_size: int | None = None) -> float:
     """SYMMETRIC-normalized similarity, in 0..1.
 
     The old score was query-coverage-only (the fraction of query tokens found in
@@ -165,12 +175,14 @@ def score(query: set[str], target: set[str]) -> float:
 
     sqrt normalizes without fully penalizing long clauses. In addition, short
     (<MIN_QUERY_TOKENS token) requests are capped at _SHORT_QUERY_CAP; the decision
-    engine further caps these at GRAY AREA at most (the PMO-escalation principle)."""
+    engine further caps these at GRAY AREA at most (the PMO-escalation principle).
+    `query_size` lets the caller judge shortness on the PRE-canonicalization
+    surface count (see `surface_token_count`); default is the canon set size."""
     if not query or not target:
         return 0.0
     q_cov = hits(query, target) / len(query)
     t_cov = hits(target, query) / len(target)
     s = q_cov * math.sqrt(t_cov)
-    if len(query) < MIN_QUERY_TOKENS:
+    if (query_size if query_size is not None else len(query)) < MIN_QUERY_TOKENS:
         s = min(s, _SHORT_QUERY_CAP)
     return s

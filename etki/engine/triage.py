@@ -42,7 +42,7 @@ from etki.core.ports import (
     RerankProvider,
     WorkItemProvider,
 )
-from etki.core.text import MIN_QUERY_TOKENS, hits, score, tokenize
+from etki.core.text import MIN_QUERY_TOKENS, hits, score, surface_token_count, tokenize
 from etki.engine import estimation
 from etki.engine.understanding import ModuleHints, has_security_wording, split_request
 from etki.i18n import t
@@ -209,8 +209,15 @@ class TriageEngine:
 
     async def _decide(self, decision_id: str, sub: SubRequest) -> TriageDecision:
         query = tokenize(sub.item)
-        best_inc, inc_score, best_exc, exc_hits, exc_score = self._match_scope(query)
-        maint_item, maint_score = self._best_included_in_category(query, "maintenance")
+        # Shortness is judged on the surface count: brand pairs collapsing to one
+        # canonical concept must not be treated as a 1-2 word request.
+        surface_n = surface_token_count(sub.item)
+        best_inc, inc_score, best_exc, exc_hits, exc_score = self._match_scope(
+            query, query_size=surface_n
+        )
+        maint_item, maint_score = self._best_included_in_category(
+            query, "maintenance", query_size=surface_n
+        )
 
         impacted = await self._code_repo.get_impacted(sub.module_hint)
         # TECHNICAL IMPACT SURFACE FOR DEPENDENCY REQUESTS: the module hint never
@@ -394,7 +401,7 @@ class TriageEngine:
         decision, confidence, matched, matched_sim, reasoning = self._classify(
             sub, best_inc, inc_score, best_exc, exc_hits, exc_score,
             touches_scoped, estimate, maint_item, maint_score,
-            short_query=len(query) < MIN_QUERY_TOKENS,
+            short_query=surface_n < MIN_QUERY_TOKENS,
             sem_no_cover=sem_no_cover,
         )
         pool_breach = self._pool_ratio(best_inc, estimate) >= _POOL_WARN
@@ -922,7 +929,7 @@ class TriageEngine:
             return [], True
 
     def _match_scope(
-        self, query: set[str]
+        self, query: set[str], *, query_size: int | None = None
     ) -> tuple[ScopeItem | None, float, ScopeItem | None, int, float]:
         best_inc: ScopeItem | None = None
         best_inc_score = 0.0
@@ -934,9 +941,11 @@ class TriageEngine:
             if item.polarity is Polarity.EXCLUDED:
                 h = hits(query, target)
                 if h > best_exc_hits:
-                    best_exc, best_exc_hits, best_exc_score = item, h, score(query, target)
+                    best_exc, best_exc_hits, best_exc_score = (
+                        item, h, score(query, target, query_size=query_size)
+                    )
             else:
-                s = score(query, target)
+                s = score(query, target, query_size=query_size)
                 if s > best_inc_score:
                     best_inc, best_inc_score = item, s
         return best_inc, best_inc_score, best_exc, best_exc_hits, best_exc_score
@@ -1038,14 +1047,16 @@ class TriageEngine:
         return out
 
     def _best_included_in_category(
-        self, query: set[str], category: str
+        self, query: set[str], category: str, *, query_size: int | None = None
     ) -> tuple[ScopeItem | None, float]:
         best: ScopeItem | None = None
         best_score = 0.0
         for item in self._baseline.scope_items:
             if item.polarity is Polarity.EXCLUDED or item.category != category:
                 continue
-            s = score(query, tokenize(f"{item.description} {item.category}"))
+            s = score(
+                query, tokenize(f"{item.description} {item.category}"), query_size=query_size
+            )
             if s > best_score:
                 best, best_score = item, s
         return best, best_score

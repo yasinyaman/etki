@@ -80,3 +80,16 @@ def test_ascii_typed_turkish_stopwords_are_stopped_too():
     )
     # Folding is lookup-only: ASCII content words still bridge via the lexicon.
     assert "driver" in tokenize("yazici surucu guncellemesi")
+
+
+def test_short_query_cap_uses_surface_count_not_canon_count():
+    from etki.core.text import surface_token_count
+
+    # Three content words collapse to two canonical tokens (okta+auth0 → idp) —
+    # the surface count is what says this was NOT a two-word request.
+    text = "Okta ve Auth0 entegrasyonu"
+    q = tokenize(text)
+    assert len(q) < 3 <= surface_token_count(text)
+    target = tokenize("IdP entegrasyonu sağlanacaktır")  # short clause: raw score 1.0
+    assert score(q, target) == 0.6  # canon count 2 → capped as a "short" query
+    assert score(q, target, query_size=surface_token_count(text)) == 1.0  # not short
