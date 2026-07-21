@@ -54,7 +54,7 @@ historical number stays comparable. The full suite has grown around it:
 | `etkibench_v1_meridian.json` | 12 | Meridian CRM | open — fresh 2026-07 batch |
 | `etkibench_v1_northwind.json` | 12 | Northwind Shop | open — fresh 2026-07 batch |
 | `heldout_v2_*.json` | 24 | both | **SEALED** — one-shot, do not run |
-| `heldout_v3_*.json` | 24 | both | **SEALED** — pre-registered 2026-07-21 for the matching/estimator round; scored once after that round merges, then burned |
+| `heldout_v3_*.json` | 24 | both | open (burned held-out, now dev) — pre-registered 2026-07-21 for the matching/estimator round, scored once at its end |
 
 Northwind files run with `--connectors config/connectors.heldout.yaml`;
 Meridian files with `config/connectors.etkibench.yaml`. Deterministic
@@ -65,6 +65,21 @@ limit extractor** ("six reports", "a fourth provider" → the quantity check
 never fires), and the v4c vendor lexicon has a measurable false-positive cost
 (KM-08 keeps a contact's *mobile number* — the word alone flips it toward the
 mobile-app exclusion; the case is designed to keep that trade-off measured).
+
+**heldout_v3 one-shot (2026-07-21, after the matching/estimator round —
+azure-lexicon fix, TR boilerplate-verb stopwords, diacritic-folded stop lookup,
+surface-count short-query cap, zero-spread analogy widening): Meridian 7/12,
+Northwind 7/12.** No generalization improvement is claimed at n=24 (CIs overlap
+v1's 12/24 heavily). What the round *did* demonstrably fix, case by case: both
+multi-brand exclusions (M3-06 Okta/Auth0, N3-05 Bitcoin/Ethereum) now register
+as OUT; ASCII-typed Turkish (M3-11) and "sağlanacaktır" boilerplate (N3-11,
+M3-12) no longer distort routing; the single-analog effort case (M3-02, 4h)
+lands inside the widened range where the old point estimate [3,3] would miss.
+Honest remaining misses: paraphrase-weak matches still cap at GRAY (M3-02/03,
+N3-03/08/10), "from 3 to 10" word-pair quantities escape the limit extractor
+(M3-09, the known gap), and M3-04 (Azure DevOps) improved from a false
+exclusion to CR_CANDIDATE but not to IN_SCOPE — the lexical bridge to the
+integration clause stays weak.
 
 ## The 66 cases
 
