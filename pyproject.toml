@@ -15,7 +15,9 @@ classifiers = [
     "Natural Language :: Turkish",
 ]
 dependencies = [
-    "etki-api",
+    # Floor 0.1.2: etki/core/ports.py imports the intake ports (RequestIntakeProvider,
+    # ResponseChannel) added in that release; older wheels fail at import time.
+    "etki-api>=0.1.2,<0.2",
     "packaging>=24",
     "tomli-w>=1.0",
     "fastapi>=0.115",

@@ -69,6 +69,9 @@ class MockGraphQuery:
     async def nl_query(self, question):  # noqa: ANN001
         return QueryResult(strategy="find_k")
 
+    async def query(self, question, *, k=5):  # noqa: ANN001
+        return QueryResult(strategy="find_k")
+
 
 def test_mock_adapter_satisfies_port(gq):
     assert isinstance(MockGraphQuery(), GraphQueryPort)

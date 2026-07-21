@@ -29,6 +29,20 @@ def test_convert_to_cr_bumps_living_baseline(client: TestClient, app_context: Ap
     assert {"TRIAGED", "CONVERT_TO_CR", "BASELINE_BUMP"} <= actions  # reconstructable
 
 
+def test_decide_overwrites_decided_at_with_ruling_time(
+    client: TestClient, app_context: AppContext
+):
+    """The engine stamps triage time at creation; a terminal PMO action must
+    overwrite it with the ruling time (disputed.md orders by this value)."""
+    cid = _triage(client, "login ekranına SSO entegrasyonu")
+    triage_stamp = app_context.repo.get_case(cid).decisions[0].decided_at
+    assert triage_stamp is not None
+    client.post(f"/casefiles/{cid}/decisions/0/action", json={"action": "APPROVE"})
+    ruled = app_context.repo.get_case(cid).decisions[0]
+    assert ruled.decided_at is not None
+    assert ruled.decided_at >= triage_stamp  # ruling time replaces triage time
+
+
 def test_rbac_blocks_non_pmo_approval(client: TestClient, auth_role: dict):
     cid = _triage(client, "rapora yeni filtre eklensin")  # triage happens while role is pmo
     auth_role["role"] = "viewer"  # session role is not PMO → approval must be denied

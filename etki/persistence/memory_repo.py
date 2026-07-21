@@ -32,6 +32,8 @@ class InMemoryCaseFileRepository:
     def set_status(
         self, request_id: str, status: PmoDecision, decided_at: datetime | None
     ) -> None:
+        # decided_at is deliberately dropped: CaseFile has no case-level field
+        # for it (only the SQL backend has a column) — see the port docstring.
         case = self._cases.get(request_id)
         if case is not None:
             case.status = status
@@ -40,7 +42,10 @@ class InMemoryCaseFileRepository:
         self._audit.append(event.model_copy(deep=True))
 
     def list_audit(self, case_id: str) -> list[AuditEvent]:
-        return [e for e in self._audit if e.case_id == case_id]
+        # Port contract: ascending seq, like the SQL repo's ORDER BY.
+        return sorted(
+            (e for e in self._audit if e.case_id == case_id), key=lambda e: e.seq
+        )
 
     def record_override(self, override: Override) -> None:
         self._overrides.append(override.model_copy(deep=True))

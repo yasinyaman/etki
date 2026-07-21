@@ -114,6 +114,26 @@ def test_conflicting_resolutions_produce_disputed_page(setup):
     assert "`REQ-demo-a` → **IN_SCOPE**" in disputed and "`REQ-demo-b` → **CR**" in disputed
 
 
+def test_disputed_entries_carry_ruling_time_not_triage_time(setup):
+    """`DisputedEntry.at` must be the PMO decide time — the engine's triage-time
+    stamp on `decided_at` gets overwritten by `ApprovalService.decide`."""
+    repo, _, _, service, _ = setup
+    baseline = Baseline(contract_id="C-1")
+    triage_stamp = datetime(2026, 7, 1, tzinfo=UTC)
+    for rid, action in (
+        ("REQ-demo-a", PmoDecision.APPROVE),
+        ("REQ-demo-b", PmoDecision.CONVERT_TO_CR),
+    ):
+        case = _case(rid)
+        case.decisions[0].decided_at = triage_stamp  # engine stamped triage time
+        service.record_triage(case)
+        service.decide(rid, 0, action, actor="pmo", current_baseline=baseline)
+    disputes = derive_disputes(repo.list_cases("demo"))
+    assert disputes
+    for entry in disputes[0].entries:
+        assert entry.at is not None and entry.at > triage_stamp
+
+
 def test_agreeing_resolutions_are_not_disputed(setup):
     repo, _, _, service, tmp = setup
     baseline = Baseline(contract_id="C-1")

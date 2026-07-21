@@ -4,12 +4,18 @@ Protocols and normalize away the vendor differences.
 
 The EXTERNAL-integration ports (WorkItemProvider, CodeRepositoryProvider,
 DocumentSourceProvider, LLMClient, EmbeddingProvider, RerankProvider,
-RegistryMetadataProvider) + Capabilities/PackageMetadata now live in the
-frozen plugin API package ``etki_api`` and are re-exported here (redundant-
-alias form = explicit re-export): SAME class objects, so every existing
-import and isinstance check keeps working. The INTERNAL ports below
-(persistence, wiki, graph query, HITL ingest) are deliberately NOT part of
-the plugin API and may change freely.
+RegistryMetadataProvider, RequestIntakeProvider, ResponseChannel) +
+Capabilities/PackageMetadata now live in the frozen plugin API package
+``etki_api`` and are re-exported here (redundant-alias form = explicit
+re-export): SAME class objects, so every existing import and isinstance
+check keeps working. The INTERNAL ports below (persistence, wiki, graph
+query, HITL ingest) are deliberately NOT part of the plugin API and may
+change freely.
+
+Shadow contract note: the host probes ``WorkItemProvider`` instances for an
+optional ``all_items()`` method via hasattr/getattr (effort-pool consumption,
+pool refresh, KPI); providers without it degrade to an empty pool. It is not
+part of the frozen port — see docs/writing-an-adapter.md §"Optional methods".
 """
 
 from __future__ import annotations
@@ -17,7 +23,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Protocol, runtime_checkable
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from etki.core.enums import PmoDecision
 from etki.core.models import (
@@ -46,22 +52,22 @@ class GraphNode(BaseModel):
     `workitem:WI-101`."""
 
     id: str
-    type: str  # scope | module | workitem
+    type: str  # scope | module | workitem | package
     text: str = ""
     score: float = 0.0
 
 
 class GraphEdge(BaseModel):
     source: str
-    relation: str  # maps_to | depends_on | depended_by | touches
+    relation: str  # maps_to | depends_on | depended_by | touches | uses_package
     target: str
 
 
 class Subgraph(BaseModel):
     """expand() output: seed neighbourhood packed under a token budget."""
 
-    nodes: list[GraphNode] = []
-    edges: list[GraphEdge] = []
+    nodes: list[GraphNode] = Field(default_factory=list)
+    edges: list[GraphEdge] = Field(default_factory=list)
     token_estimate: int = 0
     truncated: bool = False  # budget hit before the frontier was exhausted
     packing: str = "bfs"  # how the budget was filled: "bfs" | "rerank" (Faz 4)
@@ -72,10 +78,10 @@ class QueryResult(BaseModel):
     (find_k | expand | nl_query | nl_fallback) — auditable, like everything else."""
 
     strategy: str
-    nodes: list[GraphNode] = []
+    nodes: list[GraphNode] = Field(default_factory=list)
     subgraph: Subgraph | None = None
     tool: str | None = None  # nl_query: which whitelisted tool the LLM picked
-    tool_args: dict = {}
+    tool_args: dict = Field(default_factory=dict)
     tool_result: dict | list | None = None
 
 
@@ -99,6 +105,11 @@ class GraphQueryPort(Protocol):
     ) -> Subgraph: ...
 
     async def nl_query(self, question: str) -> QueryResult: ...
+
+    async def query(self, question: str, *, k: int = 5) -> QueryResult:
+        """Facade the production callers use: picks a strategy by rule and
+        RECORDS the path taken in `QueryResult.strategy` (auditable)."""
+        ...
 
 
 class WikiSearchHit(BaseModel):
@@ -126,7 +137,7 @@ class DisputedClause(BaseModel):
     clause_id: str
     clause_ref: str = ""  # source clause ("Madde 7.1") when known
     description: str = ""
-    entries: list[DisputedEntry] = []
+    entries: list[DisputedEntry] = Field(default_factory=list)
 
 
 @runtime_checkable
@@ -145,14 +156,18 @@ class WikiStore(Protocol):
     def read_decision(self, project_id: str, doc_id: str) -> str | None: ...
 
     def list_decisions(self, project_id: str) -> list[dict]:
-        """Frontmatter metas of every decision file, newest first (UI listing)."""
+        """Frontmatter metas of every decision file, newest first (tests/CLI
+        today; no UI consumer yet)."""
         ...
 
     def search(
         self, project_id: str, query: str, *, limit: int = 10
     ) -> list[WikiSearchHit]: ...
 
-    def get_entity_page(self, project_id: str, kind: str, name: str) -> str | None: ...
+    def get_entity_page(self, project_id: str, kind: str, name: str) -> str | None:
+        """Not called in production — entity pages are generated and linked as
+        files; this retrieval path is test-only."""
+        ...
 
     def rebuild(self, project_id: str, cases: list[CaseFile]) -> int:
         """Regenerates the whole project wiki from the DB's cases (projection
@@ -197,11 +212,16 @@ class CaseFileRepository(Protocol):
 
     def set_status(
         self, request_id: str, status: PmoDecision, decided_at: datetime | None
-    ) -> None: ...
+    ) -> None:
+        """`decided_at` is persisted where the backend has a column (SQL); the
+        in-memory repo ignores it — `CaseFile` carries no case-level field."""
+        ...
 
     def append_audit(self, event: AuditEvent) -> None: ...
 
-    def list_audit(self, case_id: str) -> list[AuditEvent]: ...
+    def list_audit(self, case_id: str) -> list[AuditEvent]:
+        """Returns the case's events in ascending `seq` order."""
+        ...
 
     def record_override(self, override: Override) -> None: ...
 

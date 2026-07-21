@@ -131,6 +131,9 @@ class ApprovalService:
             }, now)
 
         decision.human_decision = action
+        if action in _TERMINAL:
+            # Freeze the PMO ruling time (the engine stamped triage time at creation).
+            decision.decided_at = now
         self._audit(case_id, actor, action.value, {
             "index": decision_index,
             "system": system_decision.value,

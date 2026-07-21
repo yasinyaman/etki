@@ -354,6 +354,23 @@ jobs:
 If your repo uses pytest-asyncio in `strict` mode, nothing extra is needed —
 the contract tests carry their own `@pytest.mark.asyncio` markers.
 
+### Optional methods (shadow contracts)
+
+One method sits OUTSIDE the frozen `WorkItemProvider` protocol but is probed by
+the host via `hasattr`/`getattr`:
+
+- **`all_items() -> list[WorkItem]`** — cheap enumeration of every work item.
+  The host uses it to compute **effort-pool consumption** (per-category spent
+  hours), the background pool refresh, and the KPI/pool screens
+  (`etki/index_tools.py`, `etki/api/context.py`, `etki/api/web.py`,
+  `etki/pilot/__main__.py`). A provider without it still triages fine — the
+  pool degrades to an empty consumption dict (documented degradation, same
+  spirit as `Capabilities`). Implement it only when your backend can enumerate
+  cheaply (the built-in `file` adapter does; a paged REST tracker usually
+  should not). It is deliberately not part of the port: adding it to the
+  `runtime_checkable` Protocol would make `isinstance` require it and break
+  existing adapters. The conformance suite therefore does not test it.
+
 ### etki-api versioning policy
 
 - `etki-api` follows **semver**: major = breaking, minor = new optional

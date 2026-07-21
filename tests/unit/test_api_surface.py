@@ -49,7 +49,16 @@ _EXPECTED_ALL = [
     "load_manifest",
 ]
 
-_MOVED_MODELS = ["Churn", "CodeModule", "Complexity", "DocumentRef", "WorkItem"]
+_MOVED_MODELS = [
+    "Churn",
+    "CodeModule",
+    "Complexity",
+    "DocumentRef",
+    "IncomingRequest",
+    "IntakeBatch",
+    "OutboundResponse",
+    "WorkItem",
+]
 _MOVED_PORTS = [
     "Capabilities",
     "CodeRepositoryProvider",
@@ -108,7 +117,9 @@ def test_etki_api_is_self_contained():
 
 
 def test_api_only_adapters_import_no_etki_core():
-    """≥2 built-in adapters compile against the plugin API alone (Faz 1 gate)."""
+    """The API-only built-in adapters compile against the plugin API alone
+    (Faz 1 gate; currently jira alone — linear moved out-of-tree in Faz 2,
+    glpi was removed 2026-07-16)."""
     import importlib
 
     for dotted in _API_ONLY_ADAPTERS:

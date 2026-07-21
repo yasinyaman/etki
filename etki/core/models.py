@@ -9,7 +9,7 @@ architectural invariants are embedded here: ``ScopeItem.polarity``
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -23,6 +23,9 @@ from etki_api.models import Churn as Churn
 from etki_api.models import CodeModule as CodeModule
 from etki_api.models import Complexity as Complexity
 from etki_api.models import DocumentRef as DocumentRef
+from etki_api.models import IncomingRequest as IncomingRequest
+from etki_api.models import IntakeBatch as IntakeBatch
+from etki_api.models import OutboundResponse as OutboundResponse
 from etki_api.models import WorkItem as WorkItem
 
 # --- Scope & contract --------------------------------------------------------
@@ -54,6 +57,10 @@ class Baseline(BaseModel):
     contract_id: str
     version: int = 1
     scope_items: list[ScopeItem] = Field(default_factory=list)
+    # Dead field, kept for payload compat (.etki/index-*.json + DB baselines carry
+    # it): only the seed and the indexer write True; the CR-bump and DB-reconcile
+    # paths set locked_at but never locked, and nothing reads it. Do not branch on
+    # it without first fixing those writers.
     locked: bool = False
     locked_at: datetime | None = None
 
@@ -84,7 +91,9 @@ class DeclaredDependency(BaseModel):
 
 class BestMatch(BaseModel):
     item: str | None = None
-    similarity: float = 0.0
+    # 0..1 from the lexical scorer today; -1 floor leaves room for a raw cosine
+    # should the embedding lane ever feed this field directly.
+    similarity: float = Field(default=0.0, ge=-1.0, le=1.0)
 
 
 class ModuleSignal(BaseModel):
@@ -144,8 +153,10 @@ class EffortEstimate(BaseModel):
 
 
 class Risk(BaseModel):
-    probability: str = "düşük"
-    impact: str = "düşük"
+    # Canonical persisted keys (localized at render time via `risk.word.*` i18n
+    # keys); the engine's risk matrix indexes on exactly these three values.
+    probability: Literal["düşük", "orta", "yüksek"] = "düşük"
+    impact: Literal["düşük", "orta", "yüksek"] = "düşük"
     level: RiskLevel = RiskLevel.LOW
     escalation: bool = False  # red/critical → escalate within 24 hours
     signals: list[str] = Field(default_factory=list)  # triggering signals
@@ -154,6 +165,8 @@ class Risk(BaseModel):
 
 class CrDraft(BaseModel):
     impact_analysis: str = ""
+    # Legacy name: since the 2026-06 money removal this carries the localized
+    # effort-range text; old persisted payloads may hold frozen money strings.
     cost: str = ""
 
 
@@ -164,6 +177,8 @@ class SubRequest(BaseModel):
     type: RequestType = RequestType.UNKNOWN
     module_hint: str | None = None
     quantity: int | None = None  # quantity mentioned in the request (for limit/quota checks)
+    # Extracted by understanding._period but not yet consumed — the quota step
+    # compares quantities only (see the period-mismatch follow-up).
     period: str | None = None
     # Dependency-change requests only: the recognized package (matched against
     # the manifest declarations) and the target version AS WRITTEN. A version
@@ -178,7 +193,7 @@ class TriageDecision(BaseModel):
 
     request_id: str
     decision: Decision
-    confidence: float = 0.0
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     evidence: EvidenceChain = Field(default_factory=EvidenceChain)
     effort_estimate: EffortEstimate
     risk: Risk = Field(default_factory=Risk)
@@ -190,6 +205,10 @@ class TriageDecision(BaseModel):
     # frozen eval sets stay byte-identical.
     plugin_set: list[str] = Field(default_factory=list)
     human_decision: PmoDecision = PmoDecision.PENDING
+    # The engine stamps triage time at creation; ApprovalService.decide overwrites
+    # it with the PMO ruling time on terminal actions. Cases decided before that
+    # fix keep the triage-time value (frozen payloads — no backfill). Not to be
+    # confused with the case-level decided_at DB column (always the PMO time).
     decided_at: datetime | None = None
 
 
@@ -255,7 +274,10 @@ class AuditEvent(BaseModel):
     case_id: str
     seq: int = 0
     actor: str = "system"
-    action: str  # TRIAGED | APPROVE | REJECT | CONVERT_TO_CR | OVERRIDE
+    # TRIAGED | APPROVE | REJECT | CONVERT_TO_CR | OVERRIDE | BASELINE_BUMP
+    # | PRE_ANALYSIS | RESPONSE_POSTED — kept a plain str (values live in
+    # persisted audit rows; the vocabulary grows with new flows).
+    action: str
     detail: dict[str, Any] = Field(default_factory=dict)
     at: datetime | None = None
 

@@ -17,11 +17,10 @@ from typing import TYPE_CHECKING
 
 from etki import process_log
 from etki.config import Settings
-from etki.core.models import SourceRef
+from etki.core.models import IncomingRequest, SourceRef
 from etki.core.ports import RequestIntakeProvider
 from etki.i18n import set_locale
 from etki.intake import cursors
-from etki_api.models import IncomingRequest
 
 if TYPE_CHECKING:
     from etki.api.context import AppContext

@@ -7,6 +7,7 @@ reconciliation %, budget usage; plus threshold-calibration suggestions from over
 from __future__ import annotations
 
 from collections import Counter
+from datetime import UTC, datetime
 
 from etki.core.enums import PmoDecision
 from etki.core.models import Baseline, Override
@@ -14,6 +15,12 @@ from etki.core.ports import CaseFileRepository
 from etki.hitl.ingest import derive_disputes
 
 _TERMINAL = {PmoDecision.APPROVE, PmoDecision.REJECT, PmoDecision.CONVERT_TO_CR}
+
+
+def _as_utc(dt: datetime) -> datetime:
+    """Old audit rows (pre-UTC web.py) carry naive local timestamps; treat naive
+    as UTC so aware/naive mixes can't crash or skew the approval-speed metric."""
+    return dt if dt.tzinfo is not None else dt.replace(tzinfo=UTC)
 
 
 def effort_pool_status(consumed: float, pool: float) -> dict:
@@ -63,7 +70,8 @@ def compute_kpis(
     for case in decided:
         events = repo.list_audit(case.request_id)
         if len(events) >= 2 and events[0].at and events[-1].at:
-            speeds.append((events[-1].at - events[0].at).total_seconds() / 3600)
+            delta = _as_utc(events[-1].at) - _as_utc(events[0].at)
+            speeds.append(delta.total_seconds() / 3600)
 
     pools = {
         s.category: effort_pool_status(

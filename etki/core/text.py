@@ -1,8 +1,15 @@
-"""Naive text-matching helpers (Phase 0).
+"""The production lexical scorer — the decision-path matcher.
 
-Real embedding/RAG and Turkish NLP arrive in Phase 1-2. The goal here is only
-to prove the data flow: a crude prefix-based overlap, tolerant enough to
-catch Turkish suffixes (rapor↔rapora, filtre↔filtreleri).
+Deterministic and golden-set-pinned: symmetric-normalized similarity
+(``score`` = q_cov·√t_cov, thresholds live in Settings), bilingual TR/EN
+stopword tables, a TR↔EN canonical/brand bridge (``_SYNONYM_STEMS``),
+prefix-4 suffix tolerance (rapor↔rapora, filtre↔filtreleri) and a
+short-query cap. Embeddings/rerankers exist as retrieval-side assists only —
+they never replace this scorer on the decision path.
+
+This file is freeze-guarded (engine side): changes here must never land in
+the same change set as any ``eval/datasets/**/*.json`` edit, and behavioral
+changes require re-running the eval gates.
 """
 
 from __future__ import annotations

@@ -43,10 +43,11 @@ class RiskLevel(StrEnum):
 class RequestType(StrEnum):
     """Type of the sub-request (modifying existing code, a new feature, or maintenance).
 
-    Only MAINTENANCE branches the decision tree; DEPENDENCY_CHANGE (library add /
-    version upgrade) is deliberately INERT there — recognition + evidence note
-    without decision power (a decision branch requires its own dataset-first
-    eval round, see the plan doc)."""
+    MAINTENANCE and DEPENDENCY_CHANGE both branch the decision tree.
+    DEPENDENCY_CHANGE started inert (recognition + evidence note only) and gained
+    its branch dataset-first on 2026-07-09 (`_classify` step 1b; dependency_crs
+    went 4/14 → 13/14): declared package + maintenance clause → MAINTENANCE,
+    undeclared upgrade → GRAY, new library → CR floor — exclusions always win."""
 
     MODIFICATION = "modification"
     NEW_FEATURE = "new_feature"

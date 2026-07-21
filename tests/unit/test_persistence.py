@@ -64,6 +64,18 @@ def test_audit_and_override_persist(tmp_path):
     assert repo.list_overrides()[0].human_decision is Decision.IN_SCOPE
 
 
+def test_list_audit_orders_by_seq_even_when_appended_out_of_order(tmp_path):
+    """Port contract: ascending seq. Pinned for BOTH repos (KPI reads
+    events[0]/events[-1] as chronological endpoints)."""
+    from etki.persistence.memory_repo import InMemoryCaseFileRepository
+
+    for repo in (_repo(tmp_path), InMemoryCaseFileRepository()):
+        repo.append_audit(AuditEvent(case_id="R1", seq=2, action="APPROVE"))
+        repo.append_audit(AuditEvent(case_id="R1", seq=0, action="TRIAGED"))
+        repo.append_audit(AuditEvent(case_id="R1", seq=1, action="PRE_ANALYSIS"))
+        assert [e.seq for e in repo.list_audit("R1")] == [0, 1, 2]
+
+
 def test_baseline_versioning(tmp_path):
     repo = _repo(tmp_path)
     repo.save_baseline_version(Baseline(contract_id="C", version=1), source_case_id=None)

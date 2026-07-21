@@ -19,7 +19,7 @@ import os
 import time
 import uuid
 from collections import Counter
-from datetime import datetime
+from datetime import UTC, datetime
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _pkg_version
 from pathlib import Path
@@ -212,7 +212,7 @@ def _freshness_days(freshness: str) -> int | None:
         stamped = datetime.fromisoformat(freshness[:10]).date()
     except ValueError:
         return None
-    return (datetime.now().date() - stamped).days
+    return (datetime.now(UTC).date() - stamped).days
 
 
 def _project_meta(ctx: AppContext, project_id: str) -> dict[str, str] | None:
@@ -672,7 +672,7 @@ async def ui_triage(
     seq = max((e.seq for e in audit), default=0) + 1
     ctx.repo.append_audit(
         AuditEvent(case_id=case.request_id, seq=seq, actor="auto", action="PRE_ANALYSIS",
-                   detail={"otomatik": True, "kaynak": pre_source}, at=datetime.now())
+                   detail={"otomatik": True, "kaynak": pre_source}, at=datetime.now(UTC))
     )
     return templates.TemplateResponse(
         request,
@@ -714,7 +714,7 @@ async def ui_case_chat(
             case = ctx.repo.get_case(case_id)
             if case is not None and (case.project_id or "") == pid:
                 case.chat_turns.append(
-                    ChatTurn(question=question, answer=answer, at=datetime.now())
+                    ChatTurn(question=question, answer=answer, at=datetime.now(UTC))
                 )
                 ctx.repo.save_case(case)
     except Exception:
@@ -805,7 +805,7 @@ async def save_pre_analysis(
     ctx.repo.append_audit(
         AuditEvent(
             case_id=case_id, seq=seq, actor=user["username"], action="PRE_ANALYSIS",
-            detail={"uzunluk": len(pre_analysis)}, at=datetime.now(),
+            detail={"uzunluk": len(pre_analysis)}, at=datetime.now(UTC),
         )
     )
     return templates.TemplateResponse(

@@ -21,11 +21,10 @@ from datetime import UTC, datetime
 from typing import Any
 
 from etki import process_log
-from etki.core.models import AuditEvent, CaseFile
+from etki.core.models import AuditEvent, CaseFile, OutboundResponse
 from etki.core.ports import CaseFileRepository, ResponseChannel
 from etki.i18n import SUPPORTED
 from etki.i18n import t as _t
-from etki_api.models import OutboundResponse
 
 logger = logging.getLogger(__name__)
 
