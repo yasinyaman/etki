@@ -2045,6 +2045,11 @@ MESSAGES: dict[str, dict[str, str]] = {
         "en": "high churn → upper bound widened",
         "de": "hoher Churn → Obergrenze erweitert",
     },
+    "engine.est.zero_spread": {
+        "tr": "tek/özdeş analog → aralık faktörlerle genişletildi",
+        "en": "single/identical analog → range widened with the factors",
+        "de": "einzelnes/identisches Analogon → Spanne mit Faktoren erweitert",
+    },
     "engine.est.pert": {
         "tr": "PERT~{mean}sa (P10–P80)", "en": "PERT~{mean}h (P10–P80)",
         "de": "PERT~{mean} Std. (P10–P80)",

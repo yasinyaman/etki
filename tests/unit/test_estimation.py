@@ -13,6 +13,19 @@ def test_estimate_returns_range_with_basis():
     assert est.unit == "hour"
 
 
+def test_single_analog_still_yields_a_true_range():
+    """Zero analogy spread (one similar ticket) must not produce low == high —
+    the 'never a single number' rule holds on the strongest path too."""
+    est = estimate([_wi(14 * 3600)], [])
+    assert est.low < est.high
+    assert est.low <= 14 <= est.high  # the analog stays inside the widened range
+
+
+def test_identical_analogs_still_yield_a_true_range():
+    est = estimate([_wi(6 * 3600), _wi(6 * 3600), _wi(6 * 3600)], [])
+    assert est.low < est.high
+
+
 def test_high_churn_widens_upper_bound():
     churned = CodeModule(
         id="auth", path="auth/", complexity=Complexity(loc=100), churn=Churn(commits_last_6mo=30)

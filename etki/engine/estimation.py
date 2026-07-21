@@ -98,6 +98,13 @@ def estimate(
         pessimistic = hours[-1]
         hours_text = ", ".join(t("engine.est.hours", lang, h=f"{h:.0f}") for h in hours)
         basis = t("engine.est.similar", lang, n=len(similar), hours=hours_text)
+        if pessimistic <= optimistic:
+            # Zero spread (one similar ticket, or identical efforts): a point is
+            # not a range — widen with the configured factors so the golden rule
+            # ("never a single number") holds on the analogy path too.
+            optimistic = likely * p.optimistic_factor
+            pessimistic = likely * p.pessimistic_factor
+            basis += "; " + t("engine.est.zero_spread", lang)
     elif dep_surface is not None:  # dependency change: from the usage surface
         likely = (
             p.dep_base_hours
