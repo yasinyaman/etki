@@ -1,0 +1,74 @@
+[
+  {
+    "id": "QT-01",
+    "request_text": "Raise the number of concurrent sessions per user from 3 to 10",
+    "expected_decision": "CR_CANDIDATE",
+    "note": "Clause 3.1 caps concurrent sessions at 3; the TARGET of the from-to pair (10) exceeds it. Today the extractor takes the first digit (3) and 3 > 3 never fires (the M3-09 miss)."
+  },
+  {
+    "id": "QT-02",
+    "request_text": "Reduce concurrent sessions per user from 6 to 2",
+    "expected_decision": "IN_SCOPE",
+    "note": "Decrease control: the target (2) is within the clause 3.1 limit (3) — proves the pair fix must take the TARGET, not the max of the two numbers. Session management itself is in scope."
+  },
+  {
+    "id": "QT-03",
+    "request_text": "Generate 10 standard reports per month instead of 5",
+    "expected_decision": "CR_CANDIDATE",
+    "note": "English 'X instead of Y' puts the target FIRST, so today's first-digit rule already reads 10 — regression guard: the pair fix must not break it. 10 exceeds the clause 4.2.1 limit (5/month)."
+  },
+  {
+    "id": "QT-04",
+    "request_text": "Aylık standart rapor sayısı 5'ten 8'e çıkarılsın",
+    "expected_decision": "CR_CANDIDATE",
+    "note": "Turkish from-to pair (ablative 5'ten → dative 8'e): the target (8) exceeds the clause 4.2.1 limit (5/month). Today the first digit (5) is taken and 5 > 5 never fires."
+  },
+  {
+    "id": "QT-05",
+    "request_text": "Kullanıcı başına eşzamanlı oturum sayısı 3’ten 10’a yükseltilsin",
+    "expected_decision": "CR_CANDIDATE",
+    "note": "Same as QT-04 on the sessions clause, with CURLY apostrophes (U+2019) as real Turkish text uses — the pair regex must accept both apostrophe forms. Target 10 > limit 3."
+  },
+  {
+    "id": "QT-06",
+    "request_text": "Rapor limiti 5ten 8e cikarilsin",
+    "expected_decision": "CR_CANDIDATE",
+    "note": "Apostrophe-less ASCII-typed Turkish (5ten 8e, cikarilsin): the pair must still resolve to the target (8 > 5, clause 4.2.1)."
+  },
+  {
+    "id": "QT-07",
+    "request_text": "Aylık rapor sayısı 5 yerine 12 olsun",
+    "expected_decision": "CR_CANDIDATE",
+    "note": "Turkish 'X yerine Y' puts the target SECOND — today the first digit (5) is taken and the quota never fires. Target 12 > clause 4.2.1 limit (5/month)."
+  },
+  {
+    "id": "QT-08",
+    "request_text": "Eşzamanlı oturum sınırı 3'ten 6'ya çıksın",
+    "expected_decision": "CR_CANDIDATE",
+    "note": "Dative with buffer consonant (6'ya): the Turkish pair regex must cover -a/-e/-ya/-ye. Target 6 > clause 3.1 limit (3)."
+  },
+  {
+    "id": "QT-09",
+    "request_text": "Add 2 of the six standard report templates",
+    "expected_decision": "IN_SCOPE",
+    "note": "Digit-beats-word priority control (pinned in unit tests): quantity is 2, not six — within the clause 4.2.1 limit, and report work is in scope."
+  },
+  {
+    "id": "QT-10",
+    "request_text": "Support 3 concurrent sessions per user",
+    "expected_decision": "IN_SCOPE",
+    "note": "Equal-to-limit control: 3 > 3 is false, the quota branch must NOT fire — the contract already grants exactly 3 (clause 3.1)."
+  },
+  {
+    "id": "QT-11",
+    "request_text": "Update the reporting library to version 4",
+    "expected_decision": "GRAY_AREA",
+    "note": "Dependency-change control: 'version 4' must never be read as a quantity (no CR-by-limit). The corpus declares no manifests, so an upgrade of an undeclared package routes to GRAY per the 1b branch."
+  },
+  {
+    "id": "QT-12",
+    "request_text": "Rapor sayısını ayda 8'den 4'e düşürelim",
+    "expected_decision": "IN_SCOPE",
+    "note": "Turkish decrease control: target 4 is within the clause 4.2.1 limit (5/month) — the pair fix must take 4, not 8, and not flag a breach."
+  }
+]
