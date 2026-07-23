@@ -43,6 +43,14 @@ _STOP = {
     # while 'ten' is (the apostrophe-split fragment of "5'ten").
     "her", "yerine", "sayısı", "sayısını", "ten",
     "çıkarılsın", "yükseltilsin", "düşürülsün", "düşürelim", "çıksın", "üretilsin",
+    # Vague-wish fillers (measured): full-sentence contentless requests ("sistem
+    # daha kullanışlı hale getirilsin") escaped the short-query guard and the
+    # no-match branch promoted them to CR. With the fillers stopped they reduce
+    # to their 1-2 real content words and land in GRAY, where a PMO belongs.
+    # Minimal set (measured): 'tamamen' was tried and REVERTED — golden GS-37's
+    # CR rests on it ("tamamen yeniden tasarlansın"); the five below deliver the
+    # vague→GRAY gains with zero regressions.
+    "daha", "hale", "getirilsin", "genel", "iyileştirilsin",
     # TR mirror of the stopped EN "supported/supports": the inflected verb forms
     # are clause boilerplate ("X desteklenir"), yet the ("deste","support")
     # bridge promoted them to content tokens. Noun forms (destek/desteği =

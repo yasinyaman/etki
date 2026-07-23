@@ -218,3 +218,22 @@ async def test_direction_pair_target_drives_the_quota_branch():
     assert breach.decision is Decision.CR_CANDIDATE
     assert "limit" in breach.evidence.reasoning.lower()
     assert within.decision is not Decision.CR_CANDIDATE
+
+
+async def test_full_sentence_vague_wishes_land_in_gray_not_cr():
+    """'sistem daha kullanışlı hale getirilsin' is a wish, not a deliverable.
+    The filler words used to DILUTE its score below the gray floor, so the
+    no-match branch promoted it to a confident CR; with the fillers stopped the
+    remaining content word grazes the clause it alludes to and the request
+    correctly escalates to the PMO. (A TRULY matchless request stays CR — the
+    documented, answer-key-anchored step-5 behavior.)"""
+    baseline = Baseline(
+        contract_id="C",
+        scope_items=[_included(description="dış sistem entegrasyonu yapılır")],
+    )
+    vague = (await _engine(baseline).triage("sistem daha kullanışlı hale getirilsin"))
+    assert vague.decisions[0].decision is Decision.GRAY_AREA
+    concrete = (await _engine(baseline).triage(
+        "müşteri memnuniyet anketi modülü kurulsun"
+    ))
+    assert concrete.decisions[0].decision is Decision.CR_CANDIDATE  # real new capability
