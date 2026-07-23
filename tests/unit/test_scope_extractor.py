@@ -109,3 +109,33 @@ def test_english_payments_clause_with_integration_wording_stays_payment():
             "scope. Integration with at most 3 payment providers is supported. "
             "This item has an effort pool of 30 hours.")
     assert _category(text.lower()) == "payment"
+
+
+def test_one_excluded_bullet_does_not_flip_siblings():
+    """A mixed section: only the bullet carrying exclusion wording is EXCLUDED;
+    the sibling bullets stay INCLUDED (they used to all flip — the section
+    polarity read every bullet's keywords)."""
+    import asyncio
+
+    contract = (
+        "## Madde 6.2 — Entegrasyonlar\n"
+        "- ERP sistemi ile veri alışverişi yapılır.\n"
+        "- CRM senkronizasyonu sağlanır.\n"
+        "- Kripto ödeme entegrasyonu kapsam dışıdır.\n"
+    )
+    items = asyncio.run(HeuristicScopeExtractor().extract("C", contract))
+    polarities = [i.polarity.value for i in items]
+    assert polarities == ["INCLUDED", "INCLUDED", "EXCLUDED"]
+
+
+def test_exclusion_section_still_marks_every_bullet():
+    import asyncio
+
+    contract = (
+        "## Madde 7.1 — Hariç Tutulanlar (Kapsam Dışı)\n"
+        "Aşağıdaki işler kapsam dışındadır:\n"
+        "- SSO entegrasyonu.\n"
+        "- Mobil uygulama.\n"
+    )
+    items = asyncio.run(HeuristicScopeExtractor().extract("C", contract))
+    assert all(i.polarity.value == "EXCLUDED" for i in items)

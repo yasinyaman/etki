@@ -170,7 +170,14 @@ class HeuristicScopeExtractor:
         for clause, title, body_lines in _split_sections(text):
             body = "\n".join(body_lines)
             bullets = [m.group(1) for line in body_lines if (m := _BULLET.match(line))]
-            section_polarity = _polarity(f"{title} {body}")
+            # Section polarity comes from the title + NON-bullet prose only: one
+            # excluded bullet in a mixed list must not flip its siblings (it used
+            # to — the body string carried every bullet's keywords). A genuine
+            # exclusion section still marks all bullets via its title/intro.
+            non_bullet_prose = " ".join(
+                line for line in body_lines if not _BULLET.match(line)
+            )
+            section_polarity = _polarity(f"{title} {non_bullet_prose}")
             if bullets:
                 for bullet in bullets:
                     counter += 1
