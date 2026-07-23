@@ -8,6 +8,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Quantity direction pairs** — "eşzamanlı oturum sınırı 3'ten 10'a çıkarılsın"
+  now compares the *target* number against the contract limit (increases breach,
+  decreases don't); **period-normalized quotas** — a yearly request against a
+  monthly cap is annualized (×12) before the compare, with an evidence note.
+  Measured: quantity 11/12, period 11/11, back-test 12/12, golden 62/66 pinned.
+- **Extraction safety round** (pin-guarded by a characterization test over all
+  four sample contracts): negation guard ("hariç değildir" stays INCLUDED),
+  sibling polarity no longer flips a whole bullet section, more heading styles,
+  docx body-order + bullet fidelity, SLA durations no longer parsed as quotas,
+  more effort-pool phrasings, LLM extraction falls back to the heuristic on
+  error, zero-clause uploads warn instead of passing silently.
+- **Runtime adapter health** — a work-item provider that fails *during* triage
+  (not just at build) now degrades gracefully and shows the red health badge;
+  cloned git repos are fetched fresh before every reindex.
+- GRAY precision/recall in the back-test report and a `gray_share` KPI tile.
+
+### Changed
+
+- Builtin Jira work-item adapter migrated to `/rest/api/3/search/jql`
+  (Atlassian removed the legacy search endpoint). The Jira intake cursor now
+  carries a page token (`"minute|nextPageToken"`) so a bulk-created minute is
+  crossed over consecutive polls without livelock.
+- A second PMO decision on an already-decided case returns 409 instead of
+  double-applying (the baseline bumps once); corrupt uploads (docx/xlsx/pdf)
+  return 400 with a clear message; text decoding falls back utf-8 → cp1254
+  strict, fixing polarity inversion on Windows-Turkish contract files.
+- Vague full-sentence wishes ("sistem daha kullanışlı hale getirilsin") now
+  escalate to GRAY for the PMO instead of becoming a confident CR.
+- Performance: approval decisions, triage recording, repo cloning and upload
+  parsing moved off the event loop; graph-query, work-item token and wiki
+  metadata caches; process-log rotation at 5 MB; the LLM match prompt now
+  receives the score-sorted top-40 clauses instead of the first 40.
+- The pilot set was replaced with 12 fresh labeled cases (the old set
+  duplicated the back-test); it honestly scores below the gate and is reported
+  as a diagnostic, not enforced in CI.
+
+### Security
+
+- Work-items/intake forms no longer echo stored literal secrets (`env:`
+  references stay visible; an empty submit keeps the stored value); the JSON
+  `POST /triage` endpoint now requires the writer role, matching the UI.
+- Dependency floor `mcp>=1.28.1` (CVE-2026-59950); the sealed held-out
+  benchmark set is now code-enforced (freeze guard + eval runner refuse).
+
 ## [0.1.0a4] - 2026-07-17
 
 ### Added
