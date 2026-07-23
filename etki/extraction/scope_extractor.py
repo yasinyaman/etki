@@ -123,7 +123,15 @@ _LIMIT = re.compile(
 )
 _MONTHLY = re.compile(r"\b(ayda|aylık|aylik|her ay|monthly|per month)\b", re.IGNORECASE)
 _YEARLY = re.compile(r"\b(yılda|yıllık|her yıl|yearly|per year|annually)\b", re.IGNORECASE)
-_POOL = re.compile(r"efor havuzu\s+(\d+)\s*saat|effort pool of\s+(\d+)\s*hours?", re.IGNORECASE)
+# Real contracts phrase pools several ways; two rigid patterns silently
+# dropped every variant ("efor havuzu: 40 saat", "40-hour effort pool", …).
+_POOL = re.compile(
+    r"efor havuzu[:\s]+(\d+)\s*saat"
+    r"|toplam\s+(\d+)\s*saatlik\s+efor havuzu"
+    r"|effort pool(?:\s+of)?[:\s]+(\d+)\s*hours?"
+    r"|(\d+)[-\s]hour effort pool",
+    re.IGNORECASE,
+)
 
 
 def _effort_pool(text: str) -> float | None:
@@ -220,6 +228,7 @@ class HeuristicScopeExtractor:
             )
             section_polarity = _polarity(f"{title} {non_bullet_prose}")
             if bullets:
+                section_pool = _effort_pool(body)
                 for bullet in bullets:
                     counter += 1
                     polarity = (
@@ -236,6 +245,9 @@ class HeuristicScopeExtractor:
                             category=_category(f"{bullet} {title}"),
                             polarity=polarity,
                             limits=_limits(bullet),
+                            # The section's pool applies to each bullet (the KPI
+                            # pools view keys by category, so no double count).
+                            effort_pool_hours=section_pool,
                             source_clause=clause,
                         )
                     )

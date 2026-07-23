@@ -200,3 +200,19 @@ def test_sla_durations_are_not_quota_limits():
     items = asyncio.run(HeuristicScopeExtractor().extract("C", contract))
     assert items[0].limits.quantity == 5  # the SLA '4 saat' is skipped, the quota wins
     assert items[1].limits.quantity is None  # duration-only clause → no quota
+
+
+def test_pool_phrasing_variants_and_bullet_sections():
+    import asyncio
+
+    contract = (
+        "## Madde 4.1 — Raporlama\n"
+        "Efor havuzu: 40 saat ayrılmıştır.\n"
+        "## Clause 4.2 — Integrations\n"
+        "A 24-hour effort pool applies to the items below:\n"
+        "- ERP data exchange is delivered.\n"
+        "- CRM sync is delivered.\n"
+    )
+    items = asyncio.run(HeuristicScopeExtractor().extract("C", contract))
+    assert items[0].effort_pool_hours == 40.0  # 'Efor havuzu: N saat' variant
+    assert [i.effort_pool_hours for i in items[1:]] == [24.0, 24.0]  # bullets inherit
