@@ -1,14 +1,14 @@
 [
-  {"id": "PILOT-01", "request_text": "rapora tarih filtresi eklensin", "expected_decision": "IN_SCOPE", "actual_effort_hours": 6},
-  {"id": "PILOT-02", "request_text": "login ekranına SSO entegrasyonu", "expected_decision": "OUT_OF_SCOPE", "actual_effort_hours": 21},
-  {"id": "PILOT-03", "request_text": "mobil uygulama geliştirilsin", "expected_decision": "OUT_OF_SCOPE", "actual_effort_hours": 2.5},
-  {"id": "PILOT-04", "request_text": "kullanıcı parola sıfırlama eklensin", "expected_decision": "IN_SCOPE", "actual_effort_hours": 2.5},
-  {"id": "PILOT-05", "request_text": "raporu excel olarak dışa aktar", "expected_decision": "IN_SCOPE", "actual_effort_hours": 6},
-  {"id": "PILOT-06", "request_text": "ayda 8 farklı rapor üretilsin", "expected_decision": "CR_CANDIDATE", "actual_effort_hours": 6},
-  {"id": "PILOT-07", "request_text": "üretimdeki rapor hatası acilen düzeltilsin", "expected_decision": "MAINTENANCE", "actual_effort_hours": 6},
-  {"id": "PILOT-08", "request_text": "gösterge paneline yeni grafik eklensin", "expected_decision": "IN_SCOPE", "actual_effort_hours": 10},
-  {"id": "PILOT-09", "request_text": "push bildirim gönderimi eklensin", "expected_decision": "OUT_OF_SCOPE", "actual_effort_hours": 2.5},
-  {"id": "PILOT-10", "request_text": "3 farklı dış sisteme entegrasyon yapılsın", "expected_decision": "CR_CANDIDATE", "actual_effort_hours": 21},
-  {"id": "PILOT-11", "request_text": "veri ihracı 10000 kaydı aşan toplu çıktı", "expected_decision": "CR_CANDIDATE", "actual_effort_hours": 12},
-  {"id": "PILOT-12", "request_text": "rapor başlık fontu büyütülsün", "expected_decision": "IN_SCOPE", "actual_effort_hours": 4}
+  {"id": "PL2-01", "request_text": "raporlara kategori filtresi eklensin", "expected_decision": "IN_SCOPE", "actual_effort_hours": 5},
+  {"id": "PL2-02", "request_text": "yönetim panelindeki widget alanına satış özeti kutusu eklensin", "expected_decision": "IN_SCOPE", "actual_effort_hours": 8},
+  {"id": "PL2-03", "request_text": "oturum kapatınca kullanıcı login ekranına yönlendirilsin", "expected_decision": "IN_SCOPE", "actual_effort_hours": 3},
+  {"id": "PL2-04", "request_text": "SAML ile kurumsal kimlik doğrulama entegre edilsin", "expected_decision": "OUT_OF_SCOPE", "actual_effort_hours": 20},
+  {"id": "PL2-05", "request_text": "saha ekipleri telefonlarından uygulamaya erişebilsin", "expected_decision": "OUT_OF_SCOPE", "actual_effort_hours": 4},
+  {"id": "PL2-06", "request_text": "panelde anlık veriler canlı akış halinde gösterilsin", "expected_decision": "OUT_OF_SCOPE", "actual_effort_hours": 6},
+  {"id": "PL2-07", "request_text": "müşteri memnuniyet anketi modülü kurulsun", "expected_decision": "CR_CANDIDATE", "actual_effort_hours": 24},
+  {"id": "PL2-08", "request_text": "aynı anda 6 oturum açılabilsin", "expected_decision": "CR_CANDIDATE", "actual_effort_hours": 4},
+  {"id": "PL2-09", "request_text": "tüm standart raporlar pivot tablolarla baştan kurgulansın", "expected_decision": "CR_CANDIDATE", "actual_effort_hours": 30},
+  {"id": "PL2-10", "request_text": "excel dışa aktarımındaki bozuk karakter hatası giderilsin", "expected_decision": "MAINTENANCE", "actual_effort_hours": 3},
+  {"id": "PL2-11", "request_text": "sistem daha kullanışlı hale getirilsin", "expected_decision": "GRAY_AREA", "actual_effort_hours": 8},
+  {"id": "PL2-12", "request_text": "genel performans iyileştirilsin", "expected_decision": "GRAY_AREA", "actual_effort_hours": 12}
 ]
