@@ -139,3 +139,16 @@ def test_exclusion_section_still_marks_every_bullet():
     )
     items = asyncio.run(HeuristicScopeExtractor().extract("C", contract))
     assert all(i.polarity.value == "EXCLUDED" for i in items)
+
+
+def test_negated_exclusions_stay_included():
+    import asyncio
+
+    contract = (
+        "## Madde 5.3 — Raporlama Ekleri\n"
+        "Ek rapor şablonları kapsam dışında değildir; talep üzerine hazırlanır.\n"
+        "## Clause 5.4 — Exports\n"
+        "Custom exports are not excluded and are delivered on request.\n"
+    )
+    items = asyncio.run(HeuristicScopeExtractor().extract("C", contract))
+    assert [i.polarity.value for i in items] == ["INCLUDED", "INCLUDED"]

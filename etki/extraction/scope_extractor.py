@@ -124,8 +124,27 @@ def _effort_pool(text: str) -> float | None:
     return float(next(g for g in match.groups() if g))
 
 
+# Negated exclusions ("hariç değildir" = NOT excluded) used to invert: the bare
+# substring 'hariç' matched and flipped the clause to EXCLUDED — the exact
+# opposite of the contract's intent. Conservative list of negation shapes; a
+# clause carrying BOTH a negation and a genuine exclusion resolves to INCLUDED
+# (documented trade-off — rare, and the safe direction for a copilot is to keep
+# the clause visible rather than auto-excluding it).
+_NEGATED_EXCLUSION_KW = (
+    "hariç değil",  # covers "hariç değildir"
+    "kapsam dışı değil",
+    "kapsam dışında değil",
+    "istisna değil",
+    "not excluded",
+    "not out of scope",
+    "not outside the scope",
+)
+
+
 def _polarity(text: str) -> Polarity:
     low = text.lower()
+    if any(kw in low for kw in _NEGATED_EXCLUSION_KW):
+        return Polarity.INCLUDED
     return Polarity.EXCLUDED if any(kw in low for kw in _EXCLUSION_KW) else Polarity.INCLUDED
 
 
