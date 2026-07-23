@@ -19,6 +19,12 @@ class FileWorkItemProvider:
     def __init__(self, path: str | Path) -> None:
         self._path = Path(path)
         self._items = self._load()
+        # Tokenize once at load: find_similar used to re-tokenize the WHOLE
+        # corpus on every call (measured 0.35s/call at 10k items, on the single
+        # worker's thread). The export is immutable for this provider's lifetime.
+        self._token_cache = [
+            tokenize(f"{it.title} {it.description} {it.category or ''}") for it in self._items
+        ]
 
     def _load(self) -> list[WorkItem]:
         if not self._path.exists():
@@ -46,8 +52,8 @@ class FileWorkItemProvider:
     async def find_similar(self, description: str, *, limit: int = 5) -> list[WorkItem]:
         query = tokenize(description)
         scored = [
-            (score(query, tokenize(f"{it.title} {it.description} {it.category or ''}")), it)
-            for it in self._items
+            (score(query, tokens), it)
+            for tokens, it in zip(self._token_cache, self._items, strict=True)
         ]
         ranked = sorted(
             (pair for pair in scored if pair[0] > 0.0),

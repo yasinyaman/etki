@@ -97,6 +97,10 @@ class AppContext:
     # Decision/triage write-back host. Its `bindings` dict is filled here; the
     # singleton ApprovalService holds a reference to `on_decision`.
     responder: DecisionResponder | None = None
+    # Per-project IndexGraphQuery cache (W6): building one per request re-embedded
+    # the whole node corpus each time. Lives on the context → get_context.cache_clear()
+    # (reindex/baseline bump/settings save) naturally invalidates it.
+    graph_queries: dict[str, object] = field(default_factory=dict)
 
     def degraded_adapters(self, project_id: str) -> list[AdapterHealth]:
         return [h for h in self.adapter_health.get(project_id, []) if h.state == "degraded"]

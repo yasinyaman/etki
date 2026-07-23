@@ -16,6 +16,18 @@ from typing import Any
 
 _LOG = Path(".etki/process-log.jsonl")
 _LOCK = threading.Lock()  # prevents line interleaving on concurrent appends
+# Unbounded growth guard (W6): this file is also the KVKK-listed store of
+# free-text requests — rotate rather than truncate, keeping ONE predecessor
+# (.1) so nothing silently disappears mid-retention.
+_MAX_BYTES = 5 * 1024 * 1024
+
+
+def _rotate_if_needed() -> None:
+    try:
+        if _LOG.exists() and _LOG.stat().st_size >= _MAX_BYTES:
+            _LOG.replace(_LOG.with_suffix(_LOG.suffix + ".1"))
+    except OSError:  # rotation is best-effort; logging must never fail the caller
+        pass
 
 
 def log_event(kind: str, project_id: str, data: dict[str, Any]) -> None:
@@ -28,8 +40,10 @@ def log_event(kind: str, project_id: str, data: dict[str, Any]) -> None:
         **data,
     }
     line = json.dumps(entry, ensure_ascii=False) + "\n"
-    with _LOCK, _LOG.open("a", encoding="utf-8") as fh:
-        fh.write(line)
+    with _LOCK:
+        _rotate_if_needed()
+        with _LOG.open("a", encoding="utf-8") as fh:
+            fh.write(line)
 
 
 def read_events() -> list[dict[str, Any]]:

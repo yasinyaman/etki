@@ -67,7 +67,7 @@ from etki.api.security import (
 from etki.auth import LoginRateLimiter
 from etki.config import ProjectConfig, Settings
 from etki.core.enums import Decision, PmoDecision
-from etki.core.models import AuditEvent, CaseFile, ChatTurn, ScopeItem
+from etki.core.models import AuditEvent, CaseFile, ChatTurn, Index, ScopeItem
 from etki.domains import list_domain_profiles
 from etki.extraction.parsers import parse_document
 from etki.extraction.scope_extractor import HeuristicScopeExtractor
@@ -237,6 +237,25 @@ async def _reindex(project_id: str) -> None:
         await asyncio.to_thread(_run_index, project, Settings())
     get_context.cache_clear()  # so the new/changed project shows up in the context
 
+def _graph_query(ctx: AppContext, project_id: str, index: Index) -> IndexGraphQuery:
+    """Cached per-project graph query (W6): reuses the context's provider and
+    keeps clause embeddings warm across /sor and pre-analysis requests."""
+    cached = ctx.graph_queries.get(project_id)
+    if isinstance(cached, IndexGraphQuery):
+        return cached
+    work_items = ctx.work_item_providers.get(project_id)
+    items_fn = getattr(work_items, "all_items", None)
+    items = items_fn() if items_fn is not None else []
+    settings = Settings()
+    gq = IndexGraphQuery(
+        index, items,
+        embedder=build_embedder(settings), llm=build_llm_client(settings),
+        reranker=build_reranker(settings),
+    )
+    ctx.graph_queries[project_id] = gq
+    return gq
+
+
 
 def _decision_chip(d: Decision) -> dict[str, str]:
     color, bg = _DECISION_COLORS.get(d, ("#55666D", "#EEEBE4"))
@@ -353,7 +372,9 @@ def _deterministic_pre_analysis(case: CaseFile) -> str:
     return "\n".join(lines).strip()
 
 
-async def _project_graph_context(project_id: str, raw_request: str) -> str | None:
+async def _project_graph_context(
+    ctx: AppContext, project_id: str, raw_request: str
+) -> str | None:
     """Compact related-context block from the graph-query layer (Faz 4 consumer):
     top-3 seeds widened by `expand(query=…)` — with a configured reranker the
     packing is relevance-ordered. Best-effort: any failure returns None (a
@@ -365,13 +386,7 @@ async def _project_graph_context(project_id: str, raw_request: str) -> str | Non
         index = load_index(project.resolved_index_path())
         if index is None:
             return None
-        work_items = build_work_items(project.connectors.work_items)
-        items = work_items.all_items() if hasattr(work_items, "all_items") else []
-        settings = Settings()
-        gq = IndexGraphQuery(
-            index, items,
-            embedder=build_embedder(settings), reranker=build_reranker(settings),
-        )
+        gq = _graph_query(ctx, project.id, index)
         seeds = await gq.find_k_nodes(raw_request, k=3)
         if not seeds:
             return None
@@ -387,7 +402,7 @@ async def _project_graph_context(project_id: str, raw_request: str) -> str | Non
 
 
 async def _generate_pre_analysis(
-    project_id: str, case: CaseFile, *, use_llm: bool
+    ctx: AppContext, project_id: str, case: CaseFile, *, use_llm: bool
 ) -> tuple[str, str]:
     """Developer pre-analysis: LLM if possible, otherwise deterministic from the evidence
     chain. Returns (text, source) with source 'llm' | 'deterministic' so the UI can show
@@ -398,7 +413,7 @@ async def _generate_pre_analysis(
     if use_llm and build_llm_client(Settings()) is not None:
         try:
             prompt = _DEV_ANALYSIS_PROMPT + wrap_untrusted(_case_summary(case))
-            graph_context = await _project_graph_context(project_id, case.raw_request)
+            graph_context = await _project_graph_context(ctx, project_id, case.raw_request)
             if graph_context:
                 prompt += "\n" + wrap_untrusted(graph_context)
             if dep_context:
@@ -663,11 +678,12 @@ async def ui_triage(
     request_id = f"REQ-{pid}-{uuid.uuid4().hex[:8]}"
     case = await ctx.engines[pid].triage(request_text, request_id=request_id)
     case.project_id = pid
-    ctx.approval.record_triage(case)
+    # Wiki projection + audit write are sync O(history) work — off the loop.
+    await run_in_threadpool(ctx.approval.record_triage, case)
     summary = _case_summary(case)
     # AUTOMATICALLY generate the developer-facing pre-analysis (LLM if available, otherwise
     # deterministic) and save it to the case. The developer can edit and re-save the result.
-    pre_analysis_text, pre_source = await _generate_pre_analysis(pid, case, use_llm=True)
+    pre_analysis_text, pre_source = await _generate_pre_analysis(ctx, pid, case, use_llm=True)
     case.pre_analysis = pre_analysis_text
     ctx.repo.save_case(case)
     ctx.approval.sync_wiki(case)  # pre-analysis is rendered into the wiki projection
@@ -768,8 +784,8 @@ async def ui_analyze(
             case = await ctx.engines[pid].triage(item, request_id=request_id)
             case.project_id = pid
             # Batch-triage pre-analysis is DETERMINISTIC (N LLM calls would be costly/slow).
-            case.pre_analysis, _ = await _generate_pre_analysis(pid, case, use_llm=False)
-            ctx.approval.record_triage(case)
+            case.pre_analysis, _ = await _generate_pre_analysis(ctx, pid, case, use_llm=False)
+            await run_in_threadpool(ctx.approval.record_triage, case)
             cases.append(case)
     except Exception:
         logger.warning("[%s] toplu triyaj sırasında hata", pid, exc_info=True)
@@ -1020,7 +1036,10 @@ async def ui_action(
     ensure_project_access(user, case.project_id, ctx.user_store)
     engine = ctx.get_engine(case.project_id)
     try:
-        result = ctx.approval.decide(
+        # decide() runs wiki reprojection + full-history derived scans synchronously
+        # (measured ~3s at 5k decisions) — keep it off the single worker's loop.
+        result = await run_in_threadpool(
+            ctx.approval.decide,
             case_id, index, _ACTION[action],
             actor=user["username"], current_baseline=engine.baseline,
         )
@@ -1228,15 +1247,7 @@ async def ui_ask(
     if index is None:
         error = t("ask.no_index")
     else:
-        work_items = build_work_items(project.connectors.work_items) if project else None
-        items_fn = getattr(work_items, "all_items", None)
-        items = items_fn() if items_fn is not None else []
-        settings = Settings()
-        gq = IndexGraphQuery(
-            index, items,
-            embedder=build_embedder(settings), llm=build_llm_client(settings),
-            reranker=build_reranker(settings),
-        )
+        gq = _graph_query(ctx, pid, index)
         try:
             result = await gq.query(question, k=5)
             # Merge seed + subgraph nodes (dedup, seed order first).

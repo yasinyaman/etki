@@ -18,7 +18,7 @@ def test_pre_analysis_prompt_carries_graph_context(monkeypatch):
         captured["prompt"] = prompt
         return "analiz"
 
-    async def fake_graph_context(project_id, raw_request):  # noqa: ANN001
+    async def fake_graph_context(ctx, project_id, raw_request):  # noqa: ANN001
         return "İLGİLİ BAĞLAM (bilgi grafiğinden, paketleme: bfs):\n- scope:S1: madde"
 
     monkeypatch.setattr(web, "agent_ask", fake_ask)
@@ -30,7 +30,7 @@ def test_pre_analysis_prompt_carries_graph_context(monkeypatch):
     from etki.core.models import CaseFile
 
     case = CaseFile(request_id="REQ-x", project_id="demo", raw_request="SSO eklensin")
-    text, source = asyncio.run(web._generate_pre_analysis("demo", case, use_llm=True))
+    text, source = asyncio.run(web._generate_pre_analysis(None, "demo", case, use_llm=True))
     assert source == "llm" and text == "analiz"
     assert "İLGİLİ BAĞLAM" in captured["prompt"]
     # The graph block sits inside its own untrusted delimiters (injection guard).
@@ -49,7 +49,7 @@ def test_pre_analysis_survives_graph_context_failure(monkeypatch):
     from etki.core.models import CaseFile
 
     case = CaseFile(request_id="REQ-x", project_id="yok", raw_request="test")
-    text, source = asyncio.run(web._generate_pre_analysis("yok", case, use_llm=True))
+    text, source = asyncio.run(web._generate_pre_analysis(None, "yok", case, use_llm=True))
     assert source == "llm" and text == "analiz"
 
 
@@ -92,7 +92,7 @@ def test_triage_cards_render_dep_compare_block(engine):
 
 
 def test_graph_context_returns_none_for_unknown_project():
-    assert asyncio.run(web._project_graph_context("boyle-proje-yok", "x")) is None
+    assert asyncio.run(web._project_graph_context(None, "boyle-proje-yok", "x")) is None
 
 
 def test_mcp_wiki_search_reports_when_wiki_off(monkeypatch):
@@ -220,7 +220,7 @@ def test_pre_analysis_carries_dep_research(monkeypatch):
         return "PAKET ARAŞTIRMASI — requests 2.28 → 2.32.0"
 
     monkeypatch.setattr(web, "_dep_diff_context", fake_dep_context)
-    text, source = asyncio.run(web._generate_pre_analysis("deps", _dep_case(), use_llm=False))
+    text, source = asyncio.run(web._generate_pre_analysis(None, "deps", _dep_case(), use_llm=False))
     assert source == "deterministic" and "PAKET ARAŞTIRMASI" in text
 
     captured: dict = {}
@@ -229,7 +229,7 @@ def test_pre_analysis_carries_dep_research(monkeypatch):
         captured["prompt"] = prompt
         return "analiz"
 
-    async def no_graph(project_id, raw_request):  # noqa: ANN001
+    async def no_graph(ctx, project_id, raw_request):  # noqa: ANN001
         return None
 
     monkeypatch.setattr(web, "agent_ask", fake_ask)
@@ -237,5 +237,5 @@ def test_pre_analysis_carries_dep_research(monkeypatch):
     monkeypatch.setattr(web, "build_llm_client", lambda settings: object())
     monkeypatch.setattr(web, "_project_tools", lambda pid: None)
     monkeypatch.setattr(web, "_project_llm_args", lambda pid: {})
-    text, source = asyncio.run(web._generate_pre_analysis("deps", _dep_case(), use_llm=True))
+    text, source = asyncio.run(web._generate_pre_analysis(None, "deps", _dep_case(), use_llm=True))
     assert source == "llm" and "PAKET ARAŞTIRMASI" in captured["prompt"]

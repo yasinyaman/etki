@@ -277,7 +277,7 @@ async def triage(
     request_id = f"REQ-{pid}-{uuid.uuid4().hex[:8]}"
     case = await ctx.engines[pid].triage(body.request_text, request_id=request_id)
     case.project_id = pid
-    ctx.approval.record_triage(case)
+    await run_in_threadpool(ctx.approval.record_triage, case)
     return case
 
 
@@ -327,7 +327,9 @@ async def decide(
     ensure_project_access(user, case.project_id, ctx.user_store)
     engine = ctx.get_engine(case.project_id)
     try:
-        result = ctx.approval.decide(
+        # Same offload as the UI twin: decide() does sync O(history) work.
+        result = await run_in_threadpool(
+            ctx.approval.decide,
             case_id,
             index,
             body.action,
