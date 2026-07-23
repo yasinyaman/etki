@@ -1969,6 +1969,17 @@ MESSAGES: dict[str, dict[str, str]] = {
     "pf.opts_raw_link": {
         "tr": "serbest metin modu", "en": "free-text mode", "de": "Freitextmodus",
     },
+    "pf.no_clauses": {
+        "tr": "Doküman yüklendi ama HİÇ kapsam maddesi çıkarılamadı — başlık biçimini "
+              "kontrol edin ('Madde X — …' / 'Clause X — …' / '5. BAŞLIK'). Bu haliyle "
+              "triyaj boş baseline'a karşı çalışır.",
+        "en": "The document was uploaded but NO scope clauses were extracted — check the "
+              "heading style ('Madde X — …' / 'Clause X — …' / '5. TITLE'). As is, triage "
+              "runs against an empty baseline.",
+        "de": "Das Dokument wurde hochgeladen, aber es wurden KEINE Klauseln extrahiert — "
+              "prüfen Sie das Überschriftenformat. So läuft die Triage gegen eine leere "
+              "Baseline.",
+    },
     "pf.unknown_adapter": {
         "tr": "Bilinmeyen iş-takip adaptörü: {name}. Mevcut: {known}. Henüz kurulmamış bir "
               "eklenti adaptörü yalnızca projects.yaml üzerinden yazılabilir.",

@@ -413,3 +413,33 @@ def test_workitem_form_never_echoes_stored_secrets(client: TestClient, monkeypat
         "/projeler/demo/ayarlar/work-items/form", params={"adapter": "jira", "mode": "raw"}
     )
     assert "SUPER-SECRET-TOKEN" not in raw.text  # and in the raw textarea
+
+
+def test_upload_with_unparseable_headings_warns_about_zero_clauses(
+    client: TestClient, app_context, monkeypatch
+) -> None:
+    """W3: a contract whose headings match nothing must SAY so instead of
+    silently leaving an empty baseline."""
+    import etki.api.web as web_mod
+    from etki import projects_store
+
+    added: dict = {}
+    monkeypatch.setattr(
+        projects_store, "add_documents", lambda pid, payloads: added.update({"pid": pid})
+    )
+
+    async def fake_reindex(project_id: str) -> None:
+        added["reindexed"] = project_id
+
+    monkeypatch.setattr(web_mod, "_reindex", fake_reindex)
+
+    # The route reads module-level get_context() (not the DI override) — point
+    # it at the fixture context whose baseline we empty for the scenario.
+    monkeypatch.setattr(web_mod, "get_context", lambda: app_context)
+    app_context.engines["demo"].baseline.scope_items.clear()
+    r = client.post(
+        "/projeler/demo/dosyalar/upload",
+        files={"files": ("basliksiz.txt", "serbest metin, hic baslik yok".encode(), "text/plain")},
+    )
+    assert r.status_code == 200
+    assert "kapsam maddesi" in r.text  # pf.no_clauses warning rendered

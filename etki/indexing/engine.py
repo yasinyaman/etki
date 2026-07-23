@@ -56,12 +56,24 @@ class IndexingEngine:
                 # Extension-aware parsing (docx/xlsx/pdf/csv → text; .md/.txt/unknown →
                 # UTF-8 decode) so binary contracts work through ANY document adapter.
                 text, _ = parse_document(doc.name, raw)
-            except Exception:  # noqa: BLE001 — one broken document must not take down
-                # the whole project's indexing (graceful degradation); the skipped
+            except Exception as exc:  # noqa: BLE001 — one broken document must not take
+                # down the whole project's indexing (graceful degradation); the skipped
                 # document stays visible via the warning, baseline built from the rest.
-                logger.warning("doküman atlandı (okunamadı/ayrıştırılamadı): %s", doc.name)
+                logger.warning(
+                    "doküman atlandı (okunamadı/ayrıştırılamadı): %s — %s: %s",
+                    doc.name, type(exc).__name__, exc,
+                )
                 continue
             items.extend(await self._extractor.extract(self._contract_id, text))
+        if not items:
+            # The worst silent failure: an unparseable heading style (or empty
+            # corpus) yields an EMPTY baseline and every triage runs against
+            # nothing. Loud log; the UI mirrors it (pd.scope_empty + upload warn).
+            logger.warning(
+                "hiç kapsam maddesi çıkarılamadı (%s) — başlık biçimini kontrol edin "
+                "('Madde X — …' / 'Clause X — …' / '5. BAŞLIK')",
+                self._contract_id,
+            )
         baseline = Baseline(
             contract_id=self._contract_id, version=1, locked=True, scope_items=items
         )

@@ -2080,6 +2080,17 @@ async def project_files_upload(
             status_code=400,
         )
     await _reindex(project_id)
+    # Zero-clause surfacing: an unparseable heading style silently produced an
+    # EMPTY baseline (every triage then runs against nothing). Say it in the form.
+    fresh = get_context()
+    engine = fresh.engines.get(project_id)
+    if engine is not None and not engine.baseline.scope_items:
+        return templates.TemplateResponse(
+            request, "project_files.html",
+            (await _files_context(
+                fresh, projects_store.get(project_id) or project, error=t("pf.no_clauses")
+            )),
+        )
     return RedirectResponse(f"/projeler/{project_id}/dosyalar", status_code=303)
 
 
