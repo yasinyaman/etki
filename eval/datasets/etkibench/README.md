@@ -41,7 +41,7 @@ deterministic decision tree stays in charge, the model is consulted when lexical
 matching is inconclusive, and its output is whitelist-validated. Scope extraction is
 heuristic in both modes, so every run judges the *same* baseline.
 
-## The suite (150 open cases + 24 sealed)
+## The suite (198 open cases + 24 sealed)
 
 The headline scoreboard below is anchored to the original 66-case file so every
 historical number stays comparable. The full suite has grown around it:
@@ -49,12 +49,26 @@ historical number stays comparable. The full suite has grown around it:
 | File | n | Corpus | Status |
 |---|---|---|---|
 | `etkibench_v0.json` | 66 | Meridian CRM | open — headline scoreboard |
+| `etkibench_v0_ext.json` | 48 | Meridian CRM | open — 2026-07-24 expansion (measure with v0 → n=114) |
 | `heldout_v0.json` | 36 | Northwind Shop | open (burned held-out, now dev) |
 | `heldout_v1_meridian/northwind.json` | 24 | both | open (burned held-out, now dev) |
 | `etkibench_v1_meridian.json` | 12 | Meridian CRM | open — fresh 2026-07 batch |
 | `etkibench_v1_northwind.json` | 12 | Northwind Shop | open — fresh 2026-07 batch |
 | `heldout_v2_*.json` | 24 | both | **SEALED** — one-shot, do not run |
 | `heldout_v3_*.json` | 24 | both | open (burned held-out, now dev) — pre-registered 2026-07-21 for the matching/estimator round, scored once at its end |
+
+**`etkibench_v0_ext.json` (2026-07-24, n=48)** — a Meridian expansion authored to
+raise statistical power: labels derived from `samples/demo_project_en/contract.md`
+BEFORE any engine run (dataset-only change set, freeze-guard clean; v0 left
+untouched as the historical anchor). Same 11 strata as v0, weighted toward
+adversarial exclusions (SSO/IdP/streaming phrased with an in-scope surface word)
+and cross-lingual TR. Measure it alongside v0 for **n=114**, which tightens the
+deterministic 95% CI half-width from ±11 (n=66) to **±8 pts**. First honest
+deterministic run: ext 37/48, **combined 83/114 (73%)**. All 11 ext misses are
+genuine engine misses, not label errors — the include-side escalates hard
+adversarial/new-capability cases to GRAY, and "public REST API for third-party
+developers" (SB-094) exposes a `third-party` → IdP-exclusion false match. Labels
+were NOT adjusted to the engine (answer-key integrity).
 
 Northwind files run with `--connectors config/connectors.heldout.yaml`;
 Meridian files with `config/connectors.etkibench.yaml`. Deterministic

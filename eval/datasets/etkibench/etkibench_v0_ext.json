@@ -1,0 +1,60 @@
+[
+  {"id": "SB-067", "stratum": "in_scope_direct", "request_text": "Add a category filter to the standard report", "expected_decision": "IN_SCOPE", "rationale": "Clause 4.2.1 includes date AND category filters on reports."},
+  {"id": "SB-068", "stratum": "in_scope_direct", "request_text": "Export a generated report to Excel format", "expected_decision": "IN_SCOPE", "rationale": "Clause 4.2.2 includes PDF and Excel (xlsx) export."},
+  {"id": "SB-069", "stratum": "in_scope_direct", "request_text": "Enable password reset for users", "expected_decision": "IN_SCOPE", "rationale": "Clause 3.1 includes password reset functionality."},
+  {"id": "SB-070", "stratum": "in_scope_direct", "request_text": "Add a new widget component to the management dashboard", "expected_decision": "IN_SCOPE", "rationale": "Clause 4.3 includes standard chart and widget components."},
+  {"id": "SB-071", "stratum": "in_scope_direct", "request_text": "Support login with a local username and password", "expected_decision": "IN_SCOPE", "rationale": "Clause 3.1 includes local username/password authentication."},
+  {"id": "SB-072", "stratum": "in_scope_direct", "request_text": "Integrate with one external accounting system", "expected_decision": "IN_SCOPE", "rationale": "Clause 5.1 includes integration with at most 2 external systems; one is within the limit."},
+
+  {"id": "SB-073", "stratum": "in_scope_paraphrase", "request_text": "Users should be able to reset their forgotten passwords themselves", "expected_decision": "IN_SCOPE", "rationale": "Clause 3.1 includes password reset functionality."},
+  {"id": "SB-074", "stratum": "in_scope_paraphrase", "request_text": "Place a bar chart component on the admin dashboard", "expected_decision": "IN_SCOPE", "rationale": "Clause 4.3 includes standard chart and widget components."},
+  {"id": "SB-075", "stratum": "in_scope_paraphrase", "request_text": "Let managers download the sales report as a PDF file", "expected_decision": "IN_SCOPE", "rationale": "Clause 4.2.2 includes PDF export of generated reports."},
+  {"id": "SB-076", "stratum": "in_scope_paraphrase", "request_text": "Allow reports to be filtered by a date range", "expected_decision": "IN_SCOPE", "rationale": "Clause 4.2.1 includes date filters on reports."},
+  {"id": "SB-077", "stratum": "in_scope_paraphrase", "request_text": "Generate three standard reports each month", "expected_decision": "IN_SCOPE", "rationale": "Clause 4.2.1 includes up to 5 standard reports per month; three is within the limit."},
+
+  {"id": "SB-078", "stratum": "out_of_scope_direct", "request_text": "Add SAML single sign-on", "expected_decision": "OUT_OF_SCOPE", "rationale": "Clause 7.1 excludes SSO and SAML integration."},
+  {"id": "SB-079", "stratum": "out_of_scope_direct", "request_text": "Build a native mobile app for iOS", "expected_decision": "OUT_OF_SCOPE", "rationale": "Clause 7.1 excludes mobile application development."},
+  {"id": "SB-080", "stratum": "out_of_scope_direct", "request_text": "Add real-time data streaming to the dashboard", "expected_decision": "OUT_OF_SCOPE", "rationale": "Clause 7.1 excludes real-time data streaming."},
+  {"id": "SB-081", "stratum": "out_of_scope_direct", "request_text": "Integrate with Okta as the identity provider", "expected_decision": "OUT_OF_SCOPE", "rationale": "Clause 7.1 excludes third-party identity provider (IdP) integration."},
+  {"id": "SB-082", "stratum": "out_of_scope_direct", "request_text": "Send push notifications to users", "expected_decision": "OUT_OF_SCOPE", "rationale": "Clause 7.1 excludes push notifications."},
+
+  {"id": "SB-083", "stratum": "out_of_scope_paraphrase", "request_text": "Let users sign in through their corporate single sign-on", "expected_decision": "OUT_OF_SCOPE", "rationale": "Clause 7.1 excludes SSO integration."},
+  {"id": "SB-084", "stratum": "out_of_scope_paraphrase", "request_text": "Deliver an Android application for the product", "expected_decision": "OUT_OF_SCOPE", "rationale": "Clause 7.1 excludes mobile application development."},
+  {"id": "SB-085", "stratum": "out_of_scope_paraphrase", "request_text": "Stream live updates to clients the moment data changes", "expected_decision": "OUT_OF_SCOPE", "rationale": "Clause 7.1 excludes real-time data streaming and push."},
+
+  {"id": "SB-086", "stratum": "out_of_scope_adversarial", "request_text": "Let users log in with their Google account", "expected_decision": "OUT_OF_SCOPE", "rationale": "Sounds like in-scope login (Clause 3.1) but a Google account is third-party OAuth/IdP, excluded by Clause 7.1."},
+  {"id": "SB-087", "stratum": "out_of_scope_adversarial", "request_text": "Send a push notification whenever a new report is generated", "expected_decision": "OUT_OF_SCOPE", "rationale": "Sounds like reporting (Clause 4.2) but the deliverable is push notifications, excluded by Clause 7.1."},
+  {"id": "SB-088", "stratum": "out_of_scope_adversarial", "request_text": "Add a login option through Microsoft Entra ID", "expected_decision": "OUT_OF_SCOPE", "rationale": "Sounds like in-scope login (Clause 3.1) but Entra ID is a third-party IdP, excluded by Clause 7.1."},
+  {"id": "SB-089", "stratum": "out_of_scope_adversarial", "request_text": "Show live-streaming sales metrics on the dashboard", "expected_decision": "OUT_OF_SCOPE", "rationale": "Sounds like the in-scope dashboard (Clause 4.3) but live streaming is excluded by Clause 7.1."},
+
+  {"id": "SB-090", "stratum": "cr_new_capability", "request_text": "Add an audit log that records every user action", "expected_decision": "CR_CANDIDATE", "rationale": "No clause covers audit logging; a new capability not excluded is a change request."},
+  {"id": "SB-091", "stratum": "cr_new_capability", "request_text": "Implement a bulk CSV import of customer records", "expected_decision": "CR_CANDIDATE", "rationale": "The contract scopes report export (Clause 4.2.2), not data import; a new capability is a change request."},
+  {"id": "SB-092", "stratum": "cr_new_capability", "request_text": "Add two-factor authentication for user logins", "expected_decision": "CR_CANDIDATE", "rationale": "Clause 3.1 scopes local username/password only; 2FA is a new, non-excluded capability."},
+  {"id": "SB-093", "stratum": "cr_new_capability", "request_text": "Add email marketing campaign management", "expected_decision": "CR_CANDIDATE", "rationale": "No clause covers marketing campaigns; a new capability is a change request."},
+  {"id": "SB-094", "stratum": "cr_new_capability", "request_text": "Provide a public REST API for third-party developers", "expected_decision": "CR_CANDIDATE", "rationale": "No clause scopes a public developer API; a new capability is a change request."},
+  {"id": "SB-095", "stratum": "cr_new_capability", "request_text": "Add a dark mode theme to the user interface", "expected_decision": "CR_CANDIDATE", "rationale": "No clause covers theming; a new capability is a change request."},
+
+  {"id": "SB-096", "stratum": "cr_limit_quota", "request_text": "Support 10 concurrent sessions per user", "expected_decision": "CR_CANDIDATE", "rationale": "Clause 3.1 caps concurrent sessions at 3; 10 exceeds the limit."},
+  {"id": "SB-097", "stratum": "cr_limit_quota", "request_text": "Increase monthly report generation to 20 reports", "expected_decision": "CR_CANDIDATE", "rationale": "Clause 4.2.1 caps standard reports at 5 per month; 20 exceeds the limit."},
+  {"id": "SB-098", "stratum": "cr_limit_quota", "request_text": "Integrate with 5 external systems", "expected_decision": "CR_CANDIDATE", "rationale": "Clause 5.1 caps external integrations at 2; 5 exceeds the limit."},
+  {"id": "SB-099", "stratum": "cr_limit_quota", "request_text": "Raise the concurrent session limit from 3 to 8", "expected_decision": "CR_CANDIDATE", "rationale": "Clause 3.1 caps concurrent sessions at 3; the request targets 8, exceeding the limit."},
+
+  {"id": "SB-100", "stratum": "cr_effort_pool", "request_text": "Deliver a full custom reporting suite estimated at about 35 hours of work", "expected_decision": "CR_CANDIDATE", "rationale": "Clause 4.2.1 reporting effort pool is 40h with ~20h already consumed; a 35h ask exceeds the remaining pool."},
+  {"id": "SB-101", "stratum": "cr_effort_pool", "request_text": "Extend the external system integration with about 18 more hours of connector work", "expected_decision": "CR_CANDIDATE", "rationale": "Clause 5.1 integration effort pool is 24h with ~14h already consumed; an 18h ask exceeds the remaining pool."},
+
+  {"id": "SB-102", "stratum": "gray_vague", "request_text": "Make the reporting module better", "expected_decision": "GRAY_AREA", "rationale": "A vague wish with no concrete deliverable; escalate to the PMO."},
+  {"id": "SB-103", "stratum": "gray_vague", "request_text": "Improve the overall dashboard experience", "expected_decision": "GRAY_AREA", "rationale": "A vague wish with no concrete deliverable; escalate to the PMO."},
+  {"id": "SB-104", "stratum": "gray_vague", "request_text": "The system should be made more user-friendly", "expected_decision": "GRAY_AREA", "rationale": "A vague wish with no concrete deliverable; escalate to the PMO."},
+
+  {"id": "SB-105", "stratum": "maintenance", "request_text": "Fix the crash that happens when exporting an empty report", "expected_decision": "MAINTENANCE", "rationale": "A bug fix; Clause 8.1 covers bug-fix maintenance for 12 months."},
+  {"id": "SB-106", "stratum": "maintenance", "request_text": "The password reset email is not being sent — please fix it", "expected_decision": "MAINTENANCE", "rationale": "A bug fix on in-scope functionality; Clause 8.1 covers maintenance."},
+  {"id": "SB-107", "stratum": "maintenance", "request_text": "Resolve the error that occurs when adding a date filter", "expected_decision": "MAINTENANCE", "rationale": "A bug fix on in-scope functionality; Clause 8.1 covers maintenance."},
+  {"id": "SB-108", "stratum": "maintenance", "request_text": "Fix the dashboard widget that fails to load", "expected_decision": "MAINTENANCE", "rationale": "A bug fix on in-scope functionality; Clause 8.1 covers maintenance."},
+
+  {"id": "SB-109", "stratum": "cross_lingual_tr", "request_text": "Rapora tarih filtresi ekleyin", "expected_decision": "IN_SCOPE", "rationale": "Clause 4.2.1 includes date filters on reports (TR: add a date filter to the report)."},
+  {"id": "SB-110", "stratum": "cross_lingual_tr", "request_text": "SAML tek oturum açma (SSO) ekleyin", "expected_decision": "OUT_OF_SCOPE", "rationale": "Clause 7.1 excludes SSO/SAML (TR: add SAML single sign-on)."},
+  {"id": "SB-111", "stratum": "cross_lingual_tr", "request_text": "iOS için mobil uygulama geliştirin", "expected_decision": "OUT_OF_SCOPE", "rationale": "Clause 7.1 excludes mobile app development (TR: develop a mobile app for iOS)."},
+  {"id": "SB-112", "stratum": "cross_lingual_tr", "request_text": "Eşzamanlı oturum sınırını 3'ten 12'ye çıkarın", "expected_decision": "CR_CANDIDATE", "rationale": "Clause 3.1 caps concurrent sessions at 3; the request targets 12 (TR: raise the concurrent session limit from 3 to 12)."},
+  {"id": "SB-113", "stratum": "cross_lingual_tr", "request_text": "Kullanıcı işlemlerini kaydeden bir denetim günlüğü ekleyin", "expected_decision": "CR_CANDIDATE", "rationale": "No clause covers audit logging; a new capability (TR: add an audit log recording user actions)."},
+  {"id": "SB-114", "stratum": "cross_lingual_tr", "request_text": "Rapor dışa aktarımındaki hatayı düzeltin", "expected_decision": "MAINTENANCE", "rationale": "A bug fix; Clause 8.1 covers maintenance (TR: fix the bug in report export)."}
+]
